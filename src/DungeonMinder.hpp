@@ -2,7 +2,9 @@
 #define __DUNGEONMINDER_HPP_
 
 #include "libtcod.hpp"
+
 #include "config.hpp"
+#include "game_state.hpp"
 #include "hero.hpp"
 #include "monster.hpp"
 
@@ -15,26 +17,18 @@
 #include <utility>
 #include <vector>
 
+using namespace std::string_literals;
+
 /* GLOBAL VARIABLE DECLARATIONS */
 
 // Relating to the hero
-int level;
-int playerX, playerY;
-int illusionX, illusionY;
 int destx = 0, desty = 0;
-
-// Relating to monsters
-const int MAX_MONSTERS = 20;
-std::vector<Monster> monsterList;
-const int PORTAL_TIME = 20;
-bool bossDead = false;
 
 // Relating to messages and the message list
 std::array<std::string, MESSAGE_COUNT> messageList;
 std::array<MessageType, MESSAGE_COUNT> messageType;
 
 char charBuffer[20];
-constexpr std::string blankString = "";
 
 // Relating to spells
 constexpr int manaBlipSize = 10;
@@ -65,8 +59,6 @@ constexpr std::array<std::array<std::array<Spell, 3>, 4>, 3> spellLists {{
 
 // Relating to the map 
 bool fullscreen = false;
-Map map;
-TCODMap *mapModel = new TCODMap(MAP_WIDTH,MAP_HEIGHT);
 int cloud [MAP_WIDTH][MAP_HEIGHT];
 int field [MAP_WIDTH][MAP_HEIGHT];
 float floorNoise [MAP_WIDTH][MAP_HEIGHT];
@@ -101,20 +93,15 @@ bool castSpell(Spell);
 void generateMonsters(int, int);
 void addSpecifiedMonster(int, int, int, bool);
 void monsterMove(Monster&);
-Monster* findMonster(int, int);
-Monster* heroFindMonster();
-void hitMonster(int, int, int);
-void addMonster(const std::string&, char, int, int, int, int, bool, const std::string&, float, int, bool);
 bool applyMonsterCondition(Condition, bool);
 void generateEndBoss();
 
 /** Utility */
 bool isEmptyPatch(int, int);
-float dist(int, int, int, int);
 int getDirection();
 TCOD_key_t getKeyPress();
 
-Hero hero{map, addMessage};
+GameState state{addMessage};
 
 class WithBackgroundSet {
    public:

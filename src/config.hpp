@@ -1,6 +1,8 @@
 #ifndef __CONFIG_HPP_
 #define __CONFIG_HPP_
 
+#include <vector>
+
 constexpr int menuX = 7;
 constexpr int menuY = 7;
 constexpr int TOP = 2;
@@ -9,9 +11,9 @@ constexpr int BOTTOM = 46;
 constexpr int RIGHT = 75;
 constexpr int MAP_WIDTH = RIGHT-LEFT+1;
 constexpr int MAP_HEIGHT = BOTTOM-TOP+1;
-constexpr float heroSpellRadius = 8.0f;
 
-using Map = int[MAP_WIDTH][MAP_HEIGHT];
+constexpr int MAX_MONSTERS = 20;
+constexpr int PORTAL_TIME = 20;
 
 // Conditions
 const int CONDITION_COUNT = 7;
@@ -160,5 +162,12 @@ enum Tile {
     MARKER2
 };
 
+struct Monster;
+using Map = int[MAP_WIDTH][MAP_HEIGHT];
+
+struct Position {
+   int x;
+   int y;
+};
 
 #endif

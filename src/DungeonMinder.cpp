@@ -1,5 +1,7 @@
 #include <SDL2/SDL.h>
+
 #include "DungeonMinder.hpp"
+#include "utils.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -30,11 +32,11 @@ int main() {
    worldSpec = 0;
 
 gameLoop:
-   for (level = 1; level <= 10 && !TCODConsole::isWindowClosed(); level++) {
-      if (level%3 == 0) {
+   for (state.level = 1; state.level <= 10 && !TCODConsole::isWindowClosed(); state.level++) {
+      if (state.level%3 == 0) {
          displayUpgradeMenu();
       }
-      bool nextLevel = false;
+      bool nextlevel = false;
       addMessage("Hero: " + Hero::heroEntry[randGen->getInt(0, 4)], MessageType::HERO);
 
       // Generate Map Noise
@@ -51,20 +53,20 @@ gameLoop:
       // Creates the map
       for (int i = 0; i < MAP_WIDTH; i++) {
          for (int j = 0; j < MAP_HEIGHT; j++) {
-            map[i][j] = WALL;
+            state.map[i][j] = WALL;
             cloud[i][j] = 0;
             field[i][j] = 0;
          }
       }
       TCODBsp mapBSP (0,0,MAP_WIDTH,MAP_HEIGHT);
-      if (level < 10) {
+      if (state.level < 10) {
          mapBSP.splitRecursive(nullptr, 6, 5, 5, 1.5f, 1.5f);
       } else {
          mapBSP.splitRecursive(nullptr, 2, 5, 5, 1.5f, 1.5f);
       }
-      mapModel->clear();
+      state.mapModel->clear();
       drawBSP(&mapBSP);
-      map[0][0] = WALL;
+      state.map[0][0] = WALL;
 
       // Initialise the hero and player
       int x=-1, y=-1;
@@ -72,98 +74,98 @@ gameLoop:
          x = randGen->getInt(2, MAP_WIDTH-2);
          y = randGen->getInt(2, MAP_HEIGHT-2);
       }
-      map[x][y+1] = STAIRS_UP;
-      mapModel->setProperties(x, y+1, true, false);
+      state.map[x][y+1] = STAIRS_UP;
+      state.mapModel->setProperties(x, y+1, true, false);
 
-      playerX = x;
-      playerY = y-1;
-      map[playerX][playerY] = PLAYER;
-      hero.x = x;
-      hero.y = y;
-      map[hero.x][hero.y] = HERO;
-      hero.health = 10;
-      hero.damage = 5;
-      hero.timer = 1;
-      hero.wait = 2;
-      hero.hasteTimer = 0;
-      hero.meditationTimer = 0;
-      hero.seeInvisibleTimer = 0;
-      hero.slow = false;
-      hero.blinking = false;
-      hero.regenTimer = 0;
-      hero.shieldTimer = 0;
-      hero.pacifismTimer = 0;
-      hero.target = nullptr;
+      state.player.x = x;
+      state.player.y = y-1;
+      state.map[state.player.x][state.player.y] = PLAYER;
+      state.hero->x = x;
+      state.hero->y = y;
+      state.map[state.hero->x][state.hero->y] = HERO;
+      state.hero->health = 10;
+      state.hero->damage = 5;
+      state.hero->timer = 1;
+      state.hero->wait = 2;
+      state.hero->hasteTimer = 0;
+      state.hero->meditationTimer = 0;
+      state.hero->seeInvisibleTimer = 0;
+      state.hero->slow = false;
+      state.hero->blinking = false;
+      state.hero->regenTimer = 0;
+      state.hero->shieldTimer = 0;
+      state.hero->pacifismTimer = 0;
+      state.hero->target = nullptr;
 
-      hero.pathstep = 0;
-      hero.dead = false;
-      hero.dest1x = -1;
-      hero.dest1y = -1;
-      hero.dest2x = -1;
-      hero.dest2y = -1;
-      hero.items.clear();
+      state.hero->pathstep = 0;
+      state.hero->dead = false;
+      state.hero->dest1x = -1;
+      state.hero->dest1y = -1;
+      state.hero->dest2x = -1;
+      state.hero->dest2y = -1;
+      state.hero->items.clear();
       y--;
       heroMana = 5*manaBlipSize;
       monsterMana = 5*manaBlipSize;
       worldMana = 5*manaBlipSize;
-      illusionX = -1; illusionY = -1;
+      state.illusion.x = -1; state.illusion.y = -1;
 
       int tempx = 0, tempy = 0;
-      if (level < 10) {
+      if (state.level < 10) {
          // Place the stairs
-         while (!isEmptyPatch(tempx, tempy) || dist(hero.x, hero.y, tempx, tempy) < 20)  {
+         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20)  {
             tempx = randGen->getInt(0, MAP_WIDTH-1);
             tempy = randGen->getInt(0, MAP_HEIGHT-1);
          }
-         map[tempx][tempy] = STAIRS;
-         hero.stairsx = tempx; hero.stairsy = tempy+1;
-         mapModel->setProperties(tempx, tempy, true, false);
+         state.map[tempx][tempy] = STAIRS;
+         state.hero->stairsx = tempx; state.hero->stairsy = tempy+1;
+         state.mapModel->setProperties(tempx, tempy, true, false);
 
          // Place the chests
          tempx = 0; tempy = 0;
-         while (!isEmptyPatch(tempx, tempy) || dist(hero.x, hero.y, tempx, tempy) < 20 || dist(hero.stairsx, hero.stairsy, tempx, tempy) < 20) {
+         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
             tempx = randGen->getInt(0, MAP_WIDTH-1);
             tempy = randGen->getInt(0, MAP_HEIGHT-1);
          }
-         map[tempx][tempy] = CHEST;
-         mapModel->setProperties(tempx, tempy, true, false);
-         hero.dest1x = tempx; hero.dest1y = tempy+1;
+         state.map[tempx][tempy] = CHEST;
+         state.mapModel->setProperties(tempx, tempy, true, false);
+         state.hero->dest1x = tempx; state.hero->dest1y = tempy+1;
          tempx = 0; tempy = 0;
-         while (!isEmptyPatch(tempx, tempy) || dist(hero.x, hero.y, tempx, tempy) < 20 || dist(hero.dest1x, hero.dest1y, tempx, tempy) < 20 || dist(hero.stairsx, hero.stairsy, tempx, tempy) < 20) {
+         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->dest1x, state.hero->dest1y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
             tempx = randGen->getInt(0, MAP_WIDTH-1);
             tempy = randGen->getInt(0, MAP_HEIGHT-1);
          }
-         map[tempx][tempy] = CHEST;
-         mapModel->setProperties(tempx, tempy, true, false);
-         hero.dest2x = tempx; hero.dest2y = tempy+1;
+         state.map[tempx][tempy] = CHEST;
+         state.mapModel->setProperties(tempx, tempy, true, false);
+         state.hero->dest2x = tempx; state.hero->dest2y = tempy+1;
       } else {
       }
 
       // PLACE TRAPS
       for (int i = 0; i < 10; i++) {
          tempx = 0; tempy = 0;
-         while (map[tempx][tempy] != BLANK) {
+         while (state.map[tempx][tempy] != BLANK) {
             tempx = randGen->getInt(0, MAP_WIDTH-1);
             tempy = randGen->getInt(0, MAP_HEIGHT-1);
          }
-         map[tempx][tempy] = TRAP;
+         state.map[tempx][tempy] = TRAP;
       }
 
-      if (level < 10) {
-         generateMonsters(level, 3);
+      if (state.level < 10) {
+         generateMonsters(state.level, 3);
       } else {
          generateMonsters(3, 1);
          generateEndBoss();
       }
 
       // Draw the map
-      mapModel->computeFov(hero.x, hero.y);
+      state.mapModel->computeFov(state.hero->x, state.hero->y);
       drawScreen();
 
       // Game loop
       bool turnTaken = false;
       auto& console = *(TCODConsole::root);
-      while (!TCODConsole::isWindowClosed() && !nextLevel) {
+      while (!TCODConsole::isWindowClosed() && !nextlevel) {
          turnTaken = false;
          destx = x; desty = y;
 
@@ -211,9 +213,9 @@ gameLoop:
             if (direction != 0) {
                int diffX = ((direction-1)%3)-1;
                int diffY = 1-((direction-1)/3);
-               map[x+diffX][y+diffY] = WALL;
-               mapModel->setProperties(x+diffX, y+diffY, false, false);
-               hero.computePath();
+               state.map[x+diffX][y+diffY] = WALL;
+               state.mapModel->setProperties(x+diffX, y+diffY, false, false);
+               state.hero->computePath();
             }
          } else if (key.vk == TCODK_F8) {
             heroSpec = 0;
@@ -240,42 +242,42 @@ gameLoop:
             }
          }
          if (destx >= 0 && desty >= 0 && destx < MAP_WIDTH && desty < MAP_HEIGHT) {
-            if (map[destx][desty] == BLANK) {
-               map[x][y] = BLANK;
-               map[destx][desty] = PLAYER;
+            if (state.map[destx][desty] == BLANK) {
+               state.map[x][y] = BLANK;
+               state.map[destx][desty] = PLAYER;
                x = destx;
                y = desty;
-            } else if (map[destx][desty] == MONSTER) {
-               Monster* curMonster = findMonster(destx, desty);
+            } else if (state.map[destx][desty] == MONSTER) {
+               Monster* curMonster = state.findMonster(destx, desty);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
-            } else if (map[destx][desty] == HERO) {
-               if (hero.dead) {
+            } else if (state.map[destx][desty] == HERO) {
+               if (state.hero->dead) {
                   addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
                } else {
                   addMessage("You are blocked by the hero", MessageType::NORMAL);
                }
-            } else if (map[destx][desty] == TRAP) {
+            } else if (state.map[destx][desty] == TRAP) {
                addMessage("You shy away from the trap", MessageType::NORMAL);
-            } else if (map[destx][desty] == FIELD) {
+            } else if (state.map[destx][desty] == FIELD) {
                addMessage("You are blocked by the forcefield", MessageType::NORMAL);
-            } else if (map[destx][desty] == ILLUSION) {
-               map[destx][desty] = BLANK;
-               illusionX = -1; illusionY = -1;
+            } else if (state.map[destx][desty] == ILLUSION) {
+               state.map[destx][desty] = BLANK;
+               state.illusion.x = -1; state.illusion.y = -1;
                addMessage("You disrupt the illusion", MessageType::SPELL);
-            } else if (map[destx][desty] == PORTAL) {
+            } else if (state.map[destx][desty] == PORTAL) {
                addMessage("You are blocked by a swirling portal", MessageType::NORMAL);
-            } else if (map[destx][desty] == CHEST || map[destx][desty] == CHEST_OPEN) {
+            } else if (state.map[destx][desty] == CHEST || state.map[destx][desty] == CHEST_OPEN) {
                addMessage("You are blocked by the chest", MessageType::NORMAL);
-            } else if (map[destx][desty] == STAIRS || map[destx][desty] == STAIRS_UP) {
+            } else if (state.map[destx][desty] == STAIRS || state.map[destx][desty] == STAIRS_UP) {
                addMessage("You are blocked by the stairs", MessageType::NORMAL);
             }
          }
          // Assuming the hero pressed a key that made a turn
          if (turnTaken) {
             // Regenerate mana if the player is close to the hero
-            if (hero.inSpellRadius()) {
+            if (state.hero->inSpellRadius()) {
                // Mana regeneration is faster if the hero is meditating
-               if (hero.meditationTimer > 0) {
+               if (state.hero->meditationTimer > 0) {
                   heroMana += 2;
                   monsterMana += 2;
                   worldMana += 2;
@@ -290,15 +292,15 @@ gameLoop:
                if (worldMana > 5*manaBlipSize) worldMana = 5*manaBlipSize;
             }
             // If the hero isn't dead, make him move
-            if (hero.dead == false) {
-               nextLevel = hero.move(); 
+            if (state.hero->dead == false) {
+               nextlevel = state.hero->move(); 
                // If the hero finished the level, go to the next level
-               if (level == 10 && bossDead) {
-                  nextLevel = true;
+               if (state.level == 10 && state.bossDead) {
+                  nextlevel = true;
                }
             }
             // Move monsters
-            for (Monster& monster : monsterList) {
+            for (Monster& monster : state.monsterList) {
                monsterMove(monster);
             }
 
@@ -308,31 +310,31 @@ gameLoop:
                   if (cloud[i][j] > 0) {
                      cloud[i][j]--;
                      if (cloud[i][j] == 0) {
-                        mapModel->setProperties(i, j, true, true);
+                        state.mapModel->setProperties(i, j, true, true);
                      }
                   }
                   if (field[i][j] > 0) {
                      field[i][j]--;
                      if (field[i][j] == 0) {
-                        mapModel->setProperties(i, j, true, true);
-                        map[i][j] = BLANK;
+                        state.mapModel->setProperties(i, j, true, true);
+                        state.map[i][j] = BLANK;
                      }
                   }
                }
             }
          }
-         if (nextLevel && level < 10) {
-            // Display the next level
+         if (nextlevel && state.level < 10) {
+            // Display the next state.level
             addMessage("Hero: " + Hero::heroExit[randGen->getInt(0, 4)], MessageType::HERO);
-            addMessage("The hero descends to the next level of the dungeon!", MessageType::IMPORTANT);
+            addMessage("The hero descends to the next state.level of the dungeon!", MessageType::IMPORTANT);
          } else {
-            mapModel->computeFov(hero.x, hero.y);
+            state.mapModel->computeFov(state.hero->x, state.hero->y);
             drawScreen();
          }
       }
    }
    drawScreen();
-   if (bossDead) {
+   if (state.bossDead) {
       showVictoryScreen();
    }
 }
@@ -374,7 +376,7 @@ void drawScreen() {
    {
       WithBackgroundSet set(console);
       console.print(LEFT+MAP_WIDTH/2-7, 1, " DungeonMinder "s); 
-      console.printf(LEFT+MAP_WIDTH/2+25, 1, " Level %d ", level); 
+      console.printf(LEFT+MAP_WIDTH/2+25, 1, " state.level %d ", state.level); 
    }
    // Draw the key instructions at the bottom
 
@@ -383,48 +385,48 @@ void drawScreen() {
       for (int j = 0; j < MAP_HEIGHT; j++) {
          int floorColour = (int)(floorNoise[i][j]*40);
          console.setDefaultBackground(TCODColor(floorColour, floorColour, floorColour));
-         if (!hero.dead && mapModel->isInFov(i, j)) {
-            float intensity = 150.0f/pow((pow((i-hero.x), 2)+pow((j-hero.y),2)), 0.3);
+         if (!state.hero->dead && state.mapModel->isInFov(i, j)) {
+            float intensity = 150.0f/pow((pow((i-state.hero->x), 2)+pow((j-state.hero->y),2)), 0.3);
             console.setDefaultBackground(TCODColor((int)(floorColour+intensity), (int)(floorColour+intensity), floorColour));
          }
          if (cloud[i][j] > 0) {
             console.setDefaultBackground(TCODColor(100, 150, 100));
-            if (map[i][j] == BLANK) {
+            if (state.map[i][j] == BLANK) {
                console.setDefaultForeground(TCODColor(80, 100, 80));
                console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_SET);
             } else {
                console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
             }
          }
-         if (map[i][j] == WALL) {
+         if (state.map[i][j] == WALL) {
             console.setDefaultForeground(TCODColor(160-(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30)));
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-         } else if (map[i][j] == STAIRS_UP) {
+         } else if (state.map[i][j] == STAIRS_UP) {
             console.setDefaultForeground(TCODColor(200, 200, 200));
             console.putChar(i+LEFT, j+TOP, '<', TCOD_BKGND_SET);
-         } else if (map[i][j] == CHEST) {
+         } else if (state.map[i][j] == CHEST) {
             console.setDefaultForeground(TCODColor::lightBlue);
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (map[i][j] == CHEST_OPEN) {
+         } else if (state.map[i][j] == CHEST_OPEN) {
             console.setDefaultForeground(TCODColor(128, 64, 0));
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (map[i][j] == TRAP) {
+         } else if (state.map[i][j] == TRAP) {
             console.setDefaultForeground(TCODColor(100,150,100));
             console.putChar(i+LEFT, j+TOP, 207, TCOD_BKGND_SET);
-         } else if (map[i][j] == FIELD) {
+         } else if (state.map[i][j] == FIELD) {
             console.setDefaultForeground(TCODColor(50, 250, 200));
             console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_NONE);
-         } else if (map[i][j] == ILLUSION) {
+         } else if (state.map[i][j] == ILLUSION) {
             console.setDefaultForeground(TCODColor(50,250,200));
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (map[i][j] == PORTAL) {
+         } else if (state.map[i][j] == PORTAL) {
             console.setDefaultForeground(TCODColor::red);
             console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
-         } else if (map[i][j] == MARKER1) {
+         } else if (state.map[i][j] == MARKER1) {
             console.setDefaultForeground(TCODColor::red);
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
             console.setDefaultForeground(TCODColor::grey);
-         } else if (map[i][j] == MARKER2) {
+         } else if (state.map[i][j] == MARKER2) {
             console.setDefaultForeground(TCODColor::lightBlue);
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
             console.setDefaultForeground(TCODColor::grey);
@@ -438,34 +440,34 @@ void drawScreen() {
    console.setDefaultBackground(TCODColor::black);
 
    // Show the stairs
-   if (level < 10) {
+   if (state.level < 10) {
       console.setDefaultForeground(TCODColor::white);
-      console.putChar(hero.stairsx+LEFT, hero.stairsy-1+TOP, '>', TCOD_BKGND_NONE);
+      console.putChar(state.hero->stairsx+LEFT, state.hero->stairsy-1+TOP, '>', TCOD_BKGND_NONE);
    }
 
 
    // Show the player
    console.setDefaultForeground(TCODColor::white);
-   console.putChar(playerX+LEFT, playerY+TOP, TCOD_CHAR_LIGHT, TCOD_BKGND_NONE);
+   console.putChar(state.player.x+LEFT, state.player.y+TOP, TCOD_CHAR_LIGHT, TCOD_BKGND_NONE);
 
    // Show the hero
-   if (hero.dead) {
+   if (state.hero->dead) {
       console.setDefaultForeground(TCODColor::black);
       console.setDefaultBackground(TCODColor::darkRed);
-      console.putChar(hero.x+LEFT, hero.y+TOP, '@', TCOD_BKGND_SET);
+      console.putChar(state.hero->x+LEFT, state.hero->y+TOP, '@', TCOD_BKGND_SET);
    } else {
-      console.setDefaultForeground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
-      if (hero.shieldTimer > 0) {
+      console.setDefaultForeground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
+      if (state.hero->shieldTimer > 0) {
          console.setDefaultBackground(TCODColor(50, 250, 200));
       } else {
          console.setDefaultBackground(TCODColor::lightYellow);
       }
-      console.putChar(hero.x+LEFT, hero.y+TOP, '@', TCOD_BKGND_SET);
+      console.putChar(state.hero->x+LEFT, state.hero->y+TOP, '@', TCOD_BKGND_SET);
    }
    console.setDefaultBackground(TCODColor::black);
 
    // Show monsters
-   for (const Monster& monster : monsterList) {
+   for (const Monster& monster : state.monsterList) {
       // If the monster has spawned
       if (monster.portalTimer == 0) {
          console.setDefaultForeground(TCODColor(monster.health*100/monster.maxhealth+155, 155-(155*monster.health/monster.maxhealth), 155-(155*monster.health/monster.maxhealth)));
@@ -482,7 +484,7 @@ void drawScreen() {
       console.print(3, BOTTOM - 16+i, messageList[i]);
    }
 
-   if (hero.dead) {
+   if (state.hero->dead) {
       //console.setFade(200,TCODColor::darkRed);
       console.setDefaultBackground(TCODColor(84, 40, 0));
       for (int i = 52; i < 77; i++) {
@@ -533,25 +535,14 @@ void drawScreen() {
    TCODConsole::flush();
 }
 
-Monster* heroFindMonster() {
-   for (int i = 0; i < MAP_WIDTH; i++) {
-      for (int j = 0; j < MAP_HEIGHT; j++) {
-         if (mapModel->isInFov(i, j) && map[i][j] == MONSTER) {
-            return findMonster(i, j);
-         }
-      }
-   }
-   return nullptr;
-}
-
 void monsterMove(Monster& curMonster) {
    // If the monster is still spawning, resolve it
    if (curMonster.portalTimer > 0) {
       curMonster.portalTimer--;
       // Once the monster has spawned
       if (curMonster.portalTimer == 0) {
-         mapModel->setProperties(curMonster.x, curMonster.y, true, true);
-         map[curMonster.x][curMonster.y] = MONSTER;
+         state.mapModel->setProperties(curMonster.x, curMonster.y, true, true);
+         state.map[curMonster.x][curMonster.y] = MONSTER;
       }
    } else {
       // Otherwise, the monster is not spawning
@@ -559,44 +550,44 @@ void monsterMove(Monster& curMonster) {
          if (curMonster.timer == 0) {
             if (curMonster.symbol != '*') {
                bool rangedAttack = false;
-               map[curMonster.x][curMonster.y] = BLANK;
+               state.map[curMonster.x][curMonster.y] = BLANK;
                int diffx = 0, diffy = 0;
 
                if (curMonster.conditionTimers[Condition::HALTED] > 0) {
-                  if (dist(hero.x, hero.y, curMonster.x, curMonster.y) == 1.0) {
-                     if (hero.x > curMonster.x) diffx = 1;
-                     if (hero.x < curMonster.x) diffx = -1;
-                     if (hero.y > curMonster.y) diffy = 1;
-                     if (hero.y < curMonster.y) diffy = -1;
+                  if (Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y) == 1.0) {
+                     if (state.hero->x > curMonster.x) diffx = 1;
+                     if (state.hero->x < curMonster.x) diffx = -1;
+                     if (state.hero->y > curMonster.y) diffy = 1;
+                     if (state.hero->y < curMonster.y) diffy = -1;
                   }
-               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && mapModel->isInFov(curMonster.x, curMonster.y)) {
-                  if (hero.x > curMonster.x) diffx = -1;
-                  if (hero.x < curMonster.x) diffx = 1;
-                  if (hero.y > curMonster.y) diffy = -1;
-                  if (hero.y < curMonster.y) diffy = 1;
+               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
+                  if (state.hero->x > curMonster.x) diffx = -1;
+                  if (state.hero->x < curMonster.x) diffx = 1;
+                  if (state.hero->y > curMonster.y) diffy = -1;
+                  if (state.hero->y < curMonster.y) diffy = 1;
                } else if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
-                  float heroDist = dist(hero.x, hero.y, curMonster.x, curMonster.y);
+                  float heroDist = Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y);
                   float nearestMonsterDist = 500.0;
                   Monster* nearestMonster;
-                  mapModel->computeFov(curMonster.x, curMonster.y);
-                  for (Monster& monster : monsterList) {
+                  state.mapModel->computeFov(curMonster.x, curMonster.y);
+                  for (Monster& monster : state.monsterList) {
                      int monX = monster.x;
                      int monY = monster.y;
-                     if (&monster != &curMonster && mapModel->isInFov(monX, monY)) {
-                        float tempdist = dist(curMonster.x, curMonster.y, monX, monY);
+                     if (&monster != &curMonster && state.mapModel->isInFov(monX, monY)) {
+                        float tempdist = Utils::dist(curMonster.x, curMonster.y, monX, monY);
                         if (tempdist < nearestMonsterDist) {
                            nearestMonsterDist = tempdist;
                            nearestMonster = &monster;
                         }
                      }
                   }
-                  mapModel->computeFov(hero.x, hero.y);
+                  state.mapModel->computeFov(state.hero->x, state.hero->y);
                   if (heroDist < nearestMonsterDist && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (heroDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
-                        if (hero.x > curMonster.x) diffx = 1;
-                        if (hero.x < curMonster.x) diffx = -1;
-                        if (hero.y > curMonster.y) diffy = 1;
-                        if (hero.y < curMonster.y) diffy = -1;
+                        if (state.hero->x > curMonster.x) diffx = 1;
+                        if (state.hero->x < curMonster.x) diffx = -1;
+                        if (state.hero->y > curMonster.y) diffy = 1;
+                        if (state.hero->y < curMonster.y) diffy = -1;
                      } else {
                         diffx = randGen->getInt(-1, 1);
                         diffy = randGen->getInt(-1, 1);
@@ -612,16 +603,16 @@ void monsterMove(Monster& curMonster) {
                         diffy = randGen->getInt(-1, 1);
                      }
                   }
-               } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
-                  if (curMonster.ranged /*&& !curMonster.maimed*/ && !hero.isAdjacent(curMonster.x, curMonster.y) && dist(curMonster.x, curMonster.y, hero.x, hero.y) <= curMonster.range && mapModel->isInFov(curMonster.x, curMonster.y)) {
+               } else if (curMonster.angry && !state.hero->dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || state.hero->isAdjacent(curMonster.x, curMonster.y))) {
+                  if (curMonster.ranged /*&& !curMonster.maimed*/ && !state.hero->isAdjacent(curMonster.x, curMonster.y) && Utils::dist(curMonster.x, curMonster.y, state.hero->x, state.hero->y) <= curMonster.range && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
                      rangedAttack = true;
                   }
-                  if (hero.x > curMonster.x) diffx = 1;
-                  if (hero.x < curMonster.x) diffx = -1;
-                  if (hero.y > curMonster.y) diffy = 1;
-                  if (hero.y < curMonster.y) diffy = -1;
+                  if (state.hero->x > curMonster.x) diffx = 1;
+                  if (state.hero->x < curMonster.x) diffx = -1;
+                  if (state.hero->y > curMonster.y) diffy = 1;
+                  if (state.hero->y < curMonster.y) diffy = -1;
                } else {
-                  if (mapModel->isInFov(curMonster.x, curMonster.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
+                  if (state.mapModel->isInFov(curMonster.x, curMonster.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || state.hero->isAdjacent(curMonster.x, curMonster.y))) {
                      if (curMonster.symbol != '@' || curMonster.health != curMonster.maxhealth) {
                         curMonster.angry = true;
                      }
@@ -637,25 +628,25 @@ void monsterMove(Monster& curMonster) {
                   }
                }
                if (rangedAttack) {
-                  displayRangedAttack(hero.x, hero.y, curMonster.x, curMonster.y);
+                  displayRangedAttack(state.hero->x, state.hero->y, curMonster.x, curMonster.y);
                   int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
-                  if (hero.shieldTimer == 0) {
+                  if (state.hero->shieldTimer == 0) {
                      if (damage < 0) damage = 0;
-                     hero.health -= damage;
+                     state.hero->health -= damage;
                      sprintf(charBuffer, "%d", damage);
                      addMessage("The " + curMonster.name + " " + curMonster.rangedName + " at the hero for " + charBuffer + " damage", MessageType::NORMAL);
-                     if (hero.health <= 0) {
-                        hero.dead = true;
+                     if (state.hero->health <= 0) {
+                        state.hero->dead = true;
                         addMessage("The hero has died!", MessageType::IMPORTANT);
                         drawScreen();
-                     } else if (hero.meditationTimer > 0) {
-                        hero.meditationTimer = 0;
+                     } else if (state.hero->meditationTimer > 0) {
+                        state.hero->meditationTimer = 0;
                         addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
                      }
                   } else {
-                     hero.shieldTimer -= curMonster.damage;
-                     if (hero.shieldTimer <= 0) {
-                        hero.shieldTimer = 0;
+                     state.hero->shieldTimer -= curMonster.damage;
+                     if (state.hero->shieldTimer <= 0) {
+                        state.hero->shieldTimer = 0;
                         addMessage("The shield is shattered by the " + curMonster.name + "'s attack!", MessageType::SPELL);
                         drawScreen();
                      } else {
@@ -664,12 +655,12 @@ void monsterMove(Monster& curMonster) {
                   }
                   if (curMonster.maimed) {
                      addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                     hitMonster(curMonster.x, curMonster.y, damage);
+                     state.hitMonster(curMonster.x, curMonster.y, damage);
                   }
                } else {
-                  if (curMonster.x+diffx == hero.x && curMonster.y+diffy == hero.y && curMonster.conditionTimers[Condition::ALLIED] == 0) {
-                     if (hero.dead) {
-                        hero.health -= curMonster.damage;
+                  if (curMonster.x+diffx == state.hero->x && curMonster.y+diffy == state.hero->y && curMonster.conditionTimers[Condition::ALLIED] == 0) {
+                     if (state.hero->dead) {
+                        state.hero->health -= curMonster.damage;
                         sprintf(charBuffer, "%d", curMonster.damage);
                         if (curMonster.symbol != '@') {
                            addMessage("The " + curMonster.name + " savages the hero's corpse", MessageType::NORMAL);
@@ -677,60 +668,60 @@ void monsterMove(Monster& curMonster) {
                      } else {
                         int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
                         if (damage < 0) damage = 0;
-                        hero.health -= damage;
+                        state.hero->health -= damage;
                         sprintf(charBuffer, "%d", damage);
                         addMessage("The " + curMonster.name + " hits the hero for " + charBuffer + " damage", MessageType::NORMAL);
-                        if (hero.health <= 0) {
-                           hero.dead = true;
+                        if (state.hero->health <= 0) {
+                           state.hero->dead = true;
                            addMessage("The hero has died!", MessageType::IMPORTANT);
                            drawScreen();
-                        } else if (hero.meditationTimer > 0) {
-                           hero.meditationTimer = 0;
+                        } else if (state.hero->meditationTimer > 0) {
+                           state.hero->meditationTimer = 0;
                            addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
-                        } else if (&curMonster != hero.target && hero.target != nullptr) {
-                           if (dist(hero.x, hero.y, curMonster.x, curMonster.y) < dist(hero.x, hero.y, hero.target->x, hero.target->y)) {
-                              hero.target = &curMonster;
+                        } else if (&curMonster != state.hero->target && state.hero->target != nullptr) {
+                           if (Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y) < Utils::dist(state.hero->x, state.hero->y, state.hero->target->x, state.hero->target->y)) {
+                              state.hero->target = &curMonster;
                            }
                         }
                         if (curMonster.maimed) {
                            addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                           hitMonster(curMonster.x, curMonster.y, damage);
+                           state.hitMonster(curMonster.x, curMonster.y, damage);
                         }
                      }
-                  } else if (map[curMonster.x+diffx][curMonster.y+diffy] == MONSTER && (diffx != 0 || diffy != 0)) {
-                     Monster* otherMonster = findMonster(curMonster.x+diffx, curMonster.y+diffy);
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == MONSTER && (diffx != 0 || diffy != 0)) {
+                     Monster* otherMonster = state.findMonster(curMonster.x+diffx, curMonster.y+diffy);
                      if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
                         sprintf(charBuffer, "%d", curMonster.damage);
                         addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +charBuffer + " damage", MessageType::NORMAL);
-                        hitMonster(curMonster.x+diffx, curMonster.y+diffy, curMonster.damage);
+                        state.hitMonster(curMonster.x+diffx, curMonster.y+diffy, curMonster.damage);
                      } else {
                         addMessage("The " + curMonster.name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
                      }
-                  } else if (map[curMonster.x+diffx][curMonster.y+diffy] == PLAYER) {
-                     std::swap(playerX, curMonster.x);
-                     std::swap(playerY, curMonster.y);
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == PLAYER) {
+                     std::swap(state.player.x, curMonster.x);
+                     std::swap(state.player.y, curMonster.y);
                      addMessage("The " + curMonster.name + " passes through you", MessageType::NORMAL);
-                     map[playerX][playerY] = PLAYER;
-                  } else if (map[curMonster.x+diffx][curMonster.y+diffy] == TRAP) {
+                     state.map[state.player.x][state.player.y] = PLAYER;
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == TRAP) {
                      addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
-                     map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
+                     state.map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
                      curMonster.x+=diffx;
                      curMonster.y+=diffy;
-                     hitMonster(curMonster.x, curMonster.y, 4);
-                  } else if (map[curMonster.x+diffx][curMonster.y+diffy] == ILLUSION) {
-                     map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
-                     illusionX = -1; illusionY = -1;
+                     state.hitMonster(curMonster.x, curMonster.y, 4);
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == ILLUSION) {
+                     state.map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
+                     state.illusion.x = -1; state.illusion.y = -1;
                      addMessage("The "+curMonster.name+" disrupts the illusion", MessageType::SPELL);
-                  } else if (map[curMonster.x+diffx][curMonster.y+diffy] == BLANK) {
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == BLANK) {
                      curMonster.x+=diffx;
                      curMonster.y+=diffy;
                   }
                }
-               map[curMonster.x][curMonster.y] = MONSTER;
+               state.map[curMonster.x][curMonster.y] = MONSTER;
             } else {
-               if (monsterList.size() < MAX_MONSTERS) {
+               if (state.monsterList.size() < MAX_MONSTERS) {
                   int lx = 0, ly = 0;
-                  while (map[lx][ly] != BLANK) {
+                  while (state.map[lx][ly] != BLANK) {
                      lx = randGen->getInt(0, MAP_WIDTH-1);
                      ly = randGen->getInt(0, MAP_HEIGHT-1);
                   }
@@ -770,74 +761,6 @@ void addMessage(const std::string& message, MessageType type) {
    messageType[MESSAGE_COUNT-1] = type;
 }
 
-void addMonster(const std::string& name, char symbol, int x, int y, int health, int damage, bool ranged, const std::string& rangedName, float range, int wait, bool portalSpawned) {
-   auto& curMonster = monsterList.emplace_back();
-   curMonster.name = name;
-   curMonster.symbol = symbol;
-   curMonster.x = x;
-   curMonster.y = y;
-   curMonster.health = health;
-   curMonster.maxhealth = health;
-   curMonster.range = range;
-   curMonster.damage = damage;
-   curMonster.wait = wait;
-   curMonster.ranged = ranged;
-   curMonster.rangedName = rangedName;
-   curMonster.timer = 0;
-   curMonster.angry = false;
-   curMonster.maimed = false;
-   curMonster.portalTimer = portalSpawned?PORTAL_TIME:0;
-   for (auto& [condition, timer] : curMonster.conditionTimers) {
-      timer = 0;
-   }
-   if (portalSpawned) {
-      map[x][y] = PORTAL;
-      mapModel->setProperties(x, y, true, false);
-   } else {
-      map[x][y] = MONSTER;
-   }
-}
-
-Monster* findMonster(int x, int y) {
-   auto found = std::ranges::find_if(
-      monsterList,
-      [x, y](const auto& monster) {return monster.x == x && monster.y == y;}
-   );
-
-   return (found != monsterList.end())
-    ? &(*found)
-    : nullptr;
-}
-
-void hitMonster(int x, int y, int amount) {
-   if (Monster* curMonster = findMonster(x, y); curMonster != nullptr) {
-      curMonster->health -= amount;
-      if (curMonster->health <= 0) {
-         if (curMonster->symbol == '*' || curMonster->symbol=='M' || curMonster->symbol=='@') {
-            bossDead = true;
-         }
-         addMessage("The " + curMonster->name + " dies!", MessageType::NORMAL);
-         if (hero.target == curMonster) {
-            hero.target = nullptr;
-            hero.computePath();
-         }
-         map[curMonster->x][curMonster->y] = BLANK;
-         bool found = false;
-
-         for (auto it = monsterList.begin(); it != monsterList.end(); ++it) {
-            if (&(*it) == curMonster) {
-               curMonster == nullptr;
-               monsterList.erase(it);
-               break;
-            }
-         }
-      } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
-         curMonster->conditionTimers[Condition::HALTED] = 0;
-         addMessage("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
-      }
-   }
-}
-
 void drawBSP(TCODBsp* curBSP) {
    if (curBSP != nullptr) {
       if (curBSP->isLeaf()) {
@@ -847,18 +770,18 @@ void drawBSP(TCODBsp* curBSP) {
          int y2 = curBSP->y+curBSP->h-1;
          for (int i = x1+2; i <= x2-2; i++) {
             for (int j = y1+randGen->getInt(1, 2); j <= y2-randGen->getInt(1, 2); j++) {
-               map[i][j] = BLANK;
-               mapModel->setProperties(i, j, true, true);
+               state.map[i][j] = BLANK;
+               state.mapModel->setProperties(i, j, true, true);
             }
          }
          for (int j = y1+2; j <= y2-2; j++) {
             if (randGen->getInt(1, 2) == 1) {
-               map[x1+1][j] = BLANK;
-               mapModel->setProperties(x1+1, j, true, true);
+               state.map[x1+1][j] = BLANK;
+               state.mapModel->setProperties(x1+1, j, true, true);
             }
             if (randGen->getInt(1, 2) == 1) {
-               map[x2-1][j] = BLANK;
-               mapModel->setProperties(x2-1, j, true, true);
+               state.map[x2-1][j] = BLANK;
+               state.mapModel->setProperties(x2-1, j, true, true);
             }
          }
       } else {
@@ -874,8 +797,8 @@ void drawBSP(TCODBsp* curBSP) {
                x2 = temp;
             }
             for (int i = x1; i <= x2; i++) {
-               map[i][y] = BLANK;
-               mapModel->setProperties(i, y, true, true);
+               state.map[i][y] = BLANK;
+               state.mapModel->setProperties(i, y, true, true);
             }
          } else {
             int y1 = curBSP->getLeft()->y + curBSP->getLeft()->h/2;
@@ -887,8 +810,8 @@ void drawBSP(TCODBsp* curBSP) {
                y2 = temp;
             }
             for (int j = y1; j <= y2; j++) {
-               map[x][j] = BLANK;
-               mapModel->setProperties(x, j, true, true);
+               state.map[x][j] = BLANK;
+               state.mapModel->setProperties(x, j, true, true);
             }
          }
       }
@@ -928,7 +851,7 @@ void createSpellMenu() {
 bool isEmptyPatch(int x, int y) {
    bool result = false;
    if (x > 0 && x < MAP_WIDTH && y > 0 && y < MAP_HEIGHT) {
-      result = map[x-1][y-1] == BLANK && map[x-1][y] == BLANK && map[x-1][y+1] == BLANK && map[x][y-1] == BLANK && map[x][y] == BLANK && map[x][y+1] == BLANK && map[x+1][y-1] == BLANK && map[x+1][y] == BLANK && map[x+1][y+1] == BLANK;
+      result = state.map[x-1][y-1] == BLANK && state.map[x-1][y] == BLANK && state.map[x-1][y+1] == BLANK && state.map[x][y-1] == BLANK && state.map[x][y] == BLANK && state.map[x][y+1] == BLANK && state.map[x+1][y-1] == BLANK && state.map[x+1][y] == BLANK && state.map[x+1][y+1] == BLANK;
    }
    return result;
 }
@@ -939,7 +862,7 @@ void displayStatLine(int row) {
    auto& console = *(TCODConsole::root);
 
    // Print stats
-   if (hero.dead) {
+   if (state.hero->dead) {
       console.setDefaultForeground(TCODColor::black);
       console.setDefaultBackground(TCODColor::darkRed);
       {
@@ -950,22 +873,22 @@ void displayStatLine(int row) {
    } else {
       console.setDefaultForeground(TCODColor::white);
       console.print(13, row, "Hero health:"s);
-      console.setDefaultForeground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
+      console.setDefaultForeground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
       console.putChar(26, row, 195, TCOD_BKGND_NONE);
       console.putChar(32, row, 180, TCOD_BKGND_NONE);
-      console.setDefaultBackground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
+      console.setDefaultBackground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
       console.setDefaultForeground(TCODColor::black);
-      for (int i = 0; i < hero.health; i+=2) {
+      for (int i = 0; i < state.hero->health; i+=2) {
          console.putChar(27+(i/2), row, 224, TCOD_BKGND_SET);
       }
-      if (hero.items.contains(Item::healthCap)) {
+      if (state.hero->items.contains(Item::healthCap)) {
          console.setDefaultForeground(TCODColor(100, 200, 100));
          console.setDefaultBackground(TCODColor::black);
          console.putChar(31, row, 'X', TCOD_BKGND_SET);
       }
    }
    console.setDefaultForeground(
-      hero.inSpellRadius()
+      state.hero->inSpellRadius()
          ? TCODColor::white
          : TCODColor::red
    );
@@ -1748,17 +1671,17 @@ bool castSpell(Spell chosenSpell) {
    bool minePlaced = false;
    switch (chosenSpell) {
       case Spell::PACIFISM:
-         if (level < 10) {
-            if (hero.inSpellRadius()) {
-               if (hero.dead) {
+         if (state.level < 10) {
+            if (state.hero->inSpellRadius()) {
+               if (state.hero->dead) {
                   addMessage("The hero is dead!", MessageType::SPELL);
                } else {
-                  hero.pacifismTimer = hero.items.contains(Item::magicResist)
+                  state.hero->pacifismTimer = state.hero->items.contains(Item::magicResist)
                      ? (PACIFISM_TIME/2)
                      : PACIFISM_TIME;
-                  hero.target = nullptr;
+                  state.hero->target = nullptr;
                   addMessage("The hero appears calmer!", MessageType::SPELL);
-                  hero.computePath();
+                  state.hero->computePath();
                }
                spellCast = true;
             } else {
@@ -1769,11 +1692,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SPEED:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               hero.hasteTimer = hero.items.contains(Item::magicResist)
+               state.hero->hasteTimer = state.hero->items.contains(Item::magicResist)
                   ? (SPEED_TIME/2)
                   : SPEED_TIME;
                addMessage("The hero becomes a blur!", MessageType::SPELL);
@@ -1784,12 +1707,12 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::HEAL:
-         if (hero.inSpellRadius()) {
-            if (hero.dead){
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead){
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
                bool gained = false;
-               gained = hero.gainHealth(hero.items.contains(Item::magicResist) ? 1 : 3);
+               gained = state.hero->gainHealth(state.hero->items.contains(Item::magicResist) ? 1 : 3);
                if (gained) {
                   addMessage("The hero looks healthier!", MessageType::SPELL);
                } else {
@@ -1811,14 +1734,14 @@ bool castSpell(Spell chosenSpell) {
          spellCast = applyMonsterCondition(Condition::SLEEPING, false);
          break;
       case Spell::CLEAR:
-         for (int i = playerX-1; i <= playerX+1; i++) {
-            for (int j = playerY-1; j <= playerY+1; j++) {
+         for (int i = state.player.x-1; i <= state.player.x+1; i++) {
+            for (int j = state.player.y-1; j <= state.player.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
-                  if (map[i][j] == WALL || map[i][j] == TRAP) {
-                     map[i][j] = BLANK;
-                     mapModel->setProperties(i, j, true, true);
-                     if (hero.target == nullptr) {
-                        hero.computePath();
+                  if (state.map[i][j] == WALL || state.map[i][j] == TRAP) {
+                     state.map[i][j] = BLANK;
+                     state.mapModel->setProperties(i, j, true, true);
+                     if (state.hero->target == nullptr) {
+                        state.hero->computePath();
                      }
                   }
                }
@@ -1828,16 +1751,16 @@ bool castSpell(Spell chosenSpell) {
          spellCast = true;
          break;
       case Spell::CLOUD:
-         for (int i = playerX-2; i <= playerX+2; i++) {
-            for (int j = playerY-2; j <= playerY+2; j++) {
-               int clouddist = abs(playerX-i)+abs(playerY-j);
-               if ((clouddist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
-                  if (map[i][j] != WALL) {
-                     int newCloudLevel = CLOUD_TIME*(8-clouddist)/8;
+         for (int i = state.player.x-2; i <= state.player.x+2; i++) {
+            for (int j = state.player.y-2; j <= state.player.y+2; j++) {
+               int cloudDist = abs(state.player.x-i)+abs(state.player.y-j);
+               if ((cloudDist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
+                  if (state.map[i][j] != WALL) {
+                     int newCloudLevel = CLOUD_TIME*(8-cloudDist)/8;
                      if (newCloudLevel > cloud[i][j]) {
                         cloud[i][j] = newCloudLevel;
                      }
-                     mapModel->setProperties(i, j, false, true);
+                     state.mapModel->setProperties(i, j, false, true);
                   }
                }
             }
@@ -1851,11 +1774,11 @@ bool castSpell(Spell chosenSpell) {
          if (direction != 0) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
-            int targetX = playerX + diffX;
-            int targetY = playerY + diffY;
-            if ((targetX >= 0) && (targetY >= 0) && (targetX < MAP_WIDTH) && (targetY < MAP_HEIGHT) && map[targetX][targetY] == BLANK) {
+            int targetX = state.player.x + diffX;
+            int targetY = state.player.y + diffY;
+            if ((targetX >= 0) && (targetY >= 0) && (targetX < MAP_WIDTH) && (targetY < MAP_HEIGHT) && state.map[targetX][targetY] == BLANK) {
                addMessage("You create a trap in the ground", MessageType::SPELL);
-               map[targetX][targetY] = TRAP;
+               state.map[targetX][targetY] = TRAP;
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -1863,11 +1786,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::MEDITATION:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               hero.meditationTimer = hero.items.contains(Item::magicResist)
+               state.hero->meditationTimer = state.hero->items.contains(Item::magicResist)
                   ? (MEDITATION_TIME / 2)
                   : MEDITATION_TIME;
                addMessage("The hero begins quiet introspection", MessageType::SPELL);
@@ -1878,27 +1801,27 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::CHARITY:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
                // Check for each item the hero might have
                for (int i = 0; i < ITEM_COUNT; i++) {
                   const Item curItem = static_cast<Item>(i);
-                  if (hero.items.contains(curItem)) {
+                  if (state.hero->items.contains(curItem)) {
                      // Take off the item
-                     hero.items.erase(curItem);
+                     state.hero->items.erase(curItem);
                      addMessage("The hero takes off "+ITEM_NAME.at(curItem), MessageType::SPELL);
                      itemDropped = true;
                      // Specific effects of taking off each item
                      switch(curItem) {
                         case Item::monsterHelm:
-                           for (auto& monster : monsterList) {
+                           for (auto& monster : state.monsterList) {
                               monster.angry = false;
                            }
                            break;
                         case Item::rustedSword:
-                           hero.damage = 5;
+                           state.hero->damage = 5;
                         default:
                            break;
                      };
@@ -1907,7 +1830,7 @@ bool castSpell(Spell chosenSpell) {
                // If an item was dropped, the hero is healed
                if (itemDropped) {
                   addMessage("Hero: " + Hero::heroCharity[randGen->getInt(0, 4)], MessageType::HERO);
-                  hero.gainHealth(10);
+                  state.hero->gainHealth(10);
                   spellCast = true;
                } else {
                   addMessage("The hero is not wearing any treasure!", MessageType::SPELL);
@@ -1918,15 +1841,15 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SLOW:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               if (hero.slow) {
-                  hero.slow = false;
+               if (state.hero->slow) {
+                  state.hero->slow = false;
                   addMessage("The hero's actions speed up!", MessageType::SPELL);
                } else {
-                  hero.slow = true;
+                  state.hero->slow = true;
                   addMessage("The hero's actions slow down!", MessageType::SPELL);
                }
             }
@@ -1936,11 +1859,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SHIELD:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               hero.shieldTimer = hero.items.contains(Item::magicResist)
+               state.hero->shieldTimer = state.hero->items.contains(Item::magicResist)
                   ? (SHIELD_TIME / 2)
                   : SHIELD_TIME;
                addMessage("A transclucent shield surrounds the hero!", MessageType::SPELL);
@@ -1951,11 +1874,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::REGENERATE:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               hero.regenTimer = hero.items.contains(Item::magicResist)
+               state.hero->regenTimer = state.hero->items.contains(Item::magicResist)
                   ? (REGEN_TIME / 2)
                   : REGEN_TIME;
                addMessage("You project some healing magic onto the hero!", MessageType::SPELL);
@@ -1966,20 +1889,20 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::BLINK:
-         if (hero.inSpellRadius()) {
-            if (hero.dead) {
+         if (state.hero->inSpellRadius()) {
+            if (state.hero->dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               hero.blinking = true;
-               const auto limit = hero.items.contains(Item::magicResist)
+               state.hero->blinking = true;
+               const auto limit = state.hero->items.contains(Item::magicResist)
                   ? (BLINK_MOVES / 2)
                   : BLINK_MOVES;
                for (int i = 0; i < limit; ++i) {
-                  hero.move();
+                  state.hero->move();
                   drawScreen();
                   TCODSystem::sleepMilli(10);
                }
-               hero.blinking = false;
+               state.hero->blinking = false;
                addMessage("The hero's actions are almost instant!", MessageType::SPELL);
             }
             spellCast = true;
@@ -1993,29 +1916,29 @@ bool castSpell(Spell chosenSpell) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
             for (int i = 1; i <= 3; i++) {
-               int stepX = diffX*i+playerX;
-               int stepY = diffY*i+playerY;
+               int stepX = diffX*i+state.player.x;
+               int stepY = diffY*i+state.player.y;
                if (stepX>=0 && stepY>=0 && stepX<MAP_WIDTH && stepY <MAP_HEIGHT) {
-                  if (map[stepX][stepY] == WALL || map[stepX][stepY] == TRAP) {
-                     map[stepX][stepY] = BLANK;
-                     mapModel->setProperties(stepX, stepY, true, true);
+                  if (state.map[stepX][stepY] == WALL || state.map[stepX][stepY] == TRAP) {
+                     state.map[stepX][stepY] = BLANK;
+                     state.mapModel->setProperties(stepX, stepY, true, true);
                   }
                }
             }
             addMessage("A path is cleared for you!", MessageType::SPELL);
-            if (hero.target == nullptr) {
-               hero.computePath();
+            if (state.hero->target == nullptr) {
+               state.hero->computePath();
             }
             spellCast = true;
          }
          break;
       case Spell::MINEFIELD:
          for (int i = 0; i < 5; i++) {
-            int tempx = playerX+randGen->getInt(-2, 2);
-            int tempy = playerY+randGen->getInt(-2, 2);
+            int tempx = state.player.x+randGen->getInt(-2, 2);
+            int tempy = state.player.y+randGen->getInt(-2, 2);
             if (tempx >= 0 && tempy >= 0 && tempx < MAP_WIDTH && tempy < MAP_HEIGHT) {
-               if (map[tempx][tempy] == BLANK) {
-                  map[tempx][tempy] = TRAP;
+               if (state.map[tempx][tempy] == BLANK) {
+                  state.map[tempx][tempy] = TRAP;
                   minePlaced = true;
                }
             }
@@ -2032,10 +1955,10 @@ bool castSpell(Spell chosenSpell) {
          if (direction != 0) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
-            int targetX = playerX + diffX;
-            int targetY = playerY + diffY;
-            if (map[targetX][targetY] == MONSTER) {
-               Monster* target = findMonster(targetX, targetY);
+            int targetX = state.player.x + diffX;
+            int targetY = state.player.y + diffY;
+            if (state.map[targetX][targetY] == MONSTER) {
+               Monster* target = state.findMonster(targetX, targetY);
                addMessage("The " + target->name + " looks pained!", MessageType::SPELL);
                target->maimed = true;
             } else {
@@ -2049,10 +1972,10 @@ bool castSpell(Spell chosenSpell) {
          if (direction != 0) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
-            int targetX = playerX + diffX;
-            int targetY = playerY + diffY;
-            if (map[targetX][targetY] == MONSTER) {
-               Monster* target = findMonster(targetX, targetY);
+            int targetX = state.player.x + diffX;
+            int targetY = state.player.y + diffY;
+            if (state.map[targetX][targetY] == MONSTER) {
+               Monster* target = state.findMonster(targetX, targetY);
                addMessage("A terrible snap comes from inside the " + target->name + "!", MessageType::SPELL);
                target->health = (target->health+1)/2;
             } else {
@@ -2066,14 +1989,14 @@ bool castSpell(Spell chosenSpell) {
          if (direction != 0) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
-            int targetX = playerX + diffX;
-            int targetY = playerY + diffY;
-            if (targetX >= 0 && targetY >= 0 && targetX < MAP_WIDTH && targetY < MAP_HEIGHT && map[targetX][targetY] == BLANK ) {
-               if (illusionX != -1) {
-                  map[illusionX][illusionY] = BLANK;
+            int targetX = state.player.x + diffX;
+            int targetY = state.player.y + diffY;
+            if (targetX >= 0 && targetY >= 0 && targetX < MAP_WIDTH && targetY < MAP_HEIGHT && state.map[targetX][targetY] == BLANK ) {
+               if (state.illusion.x != -1) {
+                  state.map[state.illusion.x][state.illusion.y] = BLANK;
                }
-               illusionX = targetX; illusionY = targetY;
-               map[targetX][targetY] = ILLUSION;
+               state.illusion.x = targetX; state.illusion.y = targetY;
+               state.map[targetX][targetY] = ILLUSION;
                drawScreen();
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
@@ -2103,14 +2026,14 @@ bool castSpell(Spell chosenSpell) {
                for (int j = -1; j < 2; j++) {
                   int diff = abs(diffX-i)+abs(diffY-j);
                   if ((i != 0 || j != 0) && diff < 2) {
-                     int curX = playerX+i;
-                     int curY = playerY+j;
+                     int curX = state.player.x+i;
+                     int curY = state.player.y+j;
                      if (curX >= 0 && curY >= 0 && curX < MAP_WIDTH && curY < MAP_HEIGHT) {
-                        if (map[curX][curY] == TRAP || map[curX][curY] == WALL) {
-                           map[curX][curY] = BLANK;
+                        if (state.map[curX][curY] == TRAP || state.map[curX][curY] == WALL) {
+                           state.map[curX][curY] = BLANK;
                         }
                         cloud[curX][curY] = (diff == 0?CLOUD_TIME:CLOUD_TIME*7/8);
-                        mapModel->setProperties(curX, curY, false, true);
+                        state.mapModel->setProperties(curX, curY, false, true);
                         screenMade = true;
                      }
                   }
@@ -2118,7 +2041,7 @@ bool castSpell(Spell chosenSpell) {
             }
             if (screenMade) {
                addMessage("A wall of cloud appears before you", MessageType::SPELL);
-               hero.computePath();
+               state.hero->computePath();
             } else {
                addMessage("The spell fizzles", MessageType::SPELL);
             }
@@ -2135,49 +2058,49 @@ bool castSpell(Spell chosenSpell) {
             int curY = 0;
             if (diffX == 0 || diffY == 0) {
                for (int i = -2; i <= 2; i++) {
-                  curX = playerX+diffX+(i*(1-abs(diffX)));
-                  curY = playerY+diffY+(i*(1-abs(diffY)));
-                  if (map[curX][curY] == BLANK) {
+                  curX = state.player.x+diffX+(i*(1-abs(diffX)));
+                  curY = state.player.y+diffY+(i*(1-abs(diffY)));
+                  if (state.map[curX][curY] == BLANK) {
                      field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
-                     map[curX][curY] = FIELD;
-                     mapModel->setProperties(curX, curY, false, false);
+                     state.map[curX][curY] = FIELD;
+                     state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
                   }
                }
                for (int i = -1; i <= 1; i++) {
-                  curX = playerX+diffX*2+(i*(1-abs(diffX)));
-                  curY = playerY+diffY*2+(i*(1-abs(diffY)));
-                  if (map[curX][curY] == BLANK) {
+                  curX = state.player.x+diffX*2+(i*(1-abs(diffX)));
+                  curY = state.player.y+diffY*2+(i*(1-abs(diffY)));
+                  if (state.map[curX][curY] == BLANK) {
                      field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
-                     map[curX][curY] = FIELD;
-                     mapModel->setProperties(curX, curY, false, false);
+                     state.map[curX][curY] = FIELD;
+                     state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
                   }
                }
             } else {
                for (int i = -1; i <= 1; i++) {
-                  curX = playerX+diffX-(i*diffX);
-                  curY = playerY+diffY+(i*diffY);
-                  if (map[curX][curY] == BLANK) {
+                  curX = state.player.x+diffX-(i*diffX);
+                  curY = state.player.y+diffY+(i*diffY);
+                  if (state.map[curX][curY] == BLANK) {
                      field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
-                     map[curX][curY] = FIELD;
-                     mapModel->setProperties(curX, curY, false, false);
+                     state.map[curX][curY] = FIELD;
+                     state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
                   }
                }
                for (int i = 0; i <= 3; i++) {
-                  curX = (int)(playerX+(float)diffX/2-((i-1.5)*diffX));
-                  curY = (int)(playerY+(float)diffY/2+((i-1.5)*diffY));
-                  if (map[curX][curY] == BLANK) {
+                  curX = (int)(state.player.x+(float)diffX/2-((i-1.5)*diffX));
+                  curY = (int)(state.player.y+(float)diffY/2+((i-1.5)*diffY));
+                  if (state.map[curX][curY] == BLANK) {
                      field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
-                     map[curX][curY] = FIELD;
-                     mapModel->setProperties(curX, curY, false, false);
+                     state.map[curX][curY] = FIELD;
+                     state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
                   }
                }
             }
             if (fieldMade) {
-               hero.computePath();
+               state.hero->computePath();
                addMessage("An impassable field appears before you!", MessageType::SPELL);
             } else {
                addMessage("The spell fizzles", MessageType::SPELL);
@@ -2191,90 +2114,90 @@ bool castSpell(Spell chosenSpell) {
          for (int i = -1; i < 2; i++) {
             for (int j = -1; j < 2; j++) {
                if (i != 0 || j != 0) {
-                  int step1x = playerX+i;
-                  int step1y = playerY+j;
-                  int step2x = playerX+2*i;
-                  int step2y = playerY+2*j;
-                  int step3x = playerX+3*i;
-                  int step3y = playerY+3*j;
+                  int step1x = state.player.x+i;
+                  int step1y = state.player.y+j;
+                  int step2x = state.player.x+2*i;
+                  int step2y = state.player.y+2*j;
+                  int step3x = state.player.x+3*i;
+                  int step3y = state.player.y+3*j;
                   int tempx = step1x, tempy = step1y;
                   bool trapSprung = false;
                   if (step1x >= 0 && step1y >= 0 && step2x>= 0 && step2y >= 0 && step1x < MAP_WIDTH && step1y < MAP_HEIGHT && step2x < MAP_WIDTH && step2y < MAP_HEIGHT) {
-                     if (map[step1x][step1y] == MONSTER) {
-                        if (map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (map[step3x][step3y] == BLANK || map[step3x][step3y] == TRAP)) {
+                     if (state.map[step1x][step1y] == MONSTER) {
+                        if (state.map[step2x][step2y] == BLANK) {
+                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == TRAP)) {
                               tempx = step3x;
                               tempy = step3y;
-                              if (map[step3x][step3y] == TRAP) {
+                              if (state.map[step3x][step3y] == TRAP) {
                                  trapSprung = true;
                               }
                            } else {
                               tempx = step2x;
                               tempy = step2y;
                            }
-                        } else if (map[step2x][step2y] == TRAP) {
+                        } else if (state.map[step2x][step2y] == TRAP) {
                            trapSprung = true;
                            tempx = step2x;
                            tempy = step2y;
                         }
-                        Monster* target = findMonster(step1x, step1y);
+                        Monster* target = state.findMonster(step1x, step1y);
                         target->timer = target->wait;
-                        map[step1x][step1y] = BLANK;
-                        map[tempx][tempy] = MONSTER;
+                        state.map[step1x][step1y] = BLANK;
+                        state.map[tempx][tempy] = MONSTER;
                         target->x = tempx; target->y = tempy;
                         if (trapSprung) {
                            addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
-                           hitMonster(target->x, target->y, 4);
+                           state.hitMonster(target->x, target->y, 4);
                         }
-                     } else if (map[step1x][step1y] == HERO) {
-                        if (map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (map[step3x][step3y] == BLANK || map[step3x][step3y] == TRAP)) {
+                     } else if (state.map[step1x][step1y] == HERO) {
+                        if (state.map[step2x][step2y] == BLANK) {
+                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == TRAP)) {
                               tempx = step3x;
                               tempy = step3y;
-                              if (map[step3x][step3y] == TRAP) {
+                              if (state.map[step3x][step3y] == TRAP) {
                                  trapSprung = true;
                               }
                            } else {
                               tempx = step2x;
                               tempy = step2y;
                            }
-                        } else if (map[step2x][step2y] == TRAP) {
+                        } else if (state.map[step2x][step2y] == TRAP) {
                            trapSprung = true;
                            tempx = step2x;
                            tempy = step2y;
                         }
-                        map[step1x][step1y] = BLANK;
-                        map[tempx][tempy] = HERO;
-                        hero.x = tempx; hero.y = tempy;
-                        hero.timer = hero.wait;
+                        state.map[step1x][step1y] = BLANK;
+                        state.map[tempx][tempy] = HERO;
+                        state.hero->x = tempx; state.hero->y = tempy;
+                        state.hero->timer = state.hero->wait;
                         if (trapSprung) {
-                           if (!hero.dead) {
+                           if (!state.hero->dead) {
                               addMessage("The hero is blown into the trap!", MessageType::SPELL);
-                              hero.health -= 4;
-                              map[step1x][step1y] = BLANK;
-                              map[tempx][tempy] = HERO;
-                              hero.x = tempx; hero.y = tempy;
-                              if (hero.health <= 0) {
-                                 hero.dead = true;
+                              state.hero->health -= 4;
+                              state.map[step1x][step1y] = BLANK;
+                              state.map[tempx][tempy] = HERO;
+                              state.hero->x = tempx; state.hero->y = tempy;
+                              if (state.hero->health <= 0) {
+                                 state.hero->dead = true;
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
                                  addMessage("Hero: " + Hero::heroBlow[randGen->getInt(0, 4)], MessageType::HERO);
                               }
                            } else {
-                              map[step1x][step1y] = BLANK;
-                              map[tempx][tempy] = HERO;
-                              hero.x = tempx; hero.y = tempy;
+                              state.map[step1x][step1y] = BLANK;
+                              state.map[tempx][tempy] = HERO;
+                              state.hero->x = tempx; state.hero->y = tempy;
                               addMessage("The hero's corpse is blown into the trap!", MessageType::SPELL);
                            }
                         } else {
-                           if (!hero.dead) {
+                           if (!state.hero->dead) {
                               addMessage("Hero: " + Hero::heroBlow[randGen->getInt(0, 4)], MessageType::HERO);
                            }
                         }
-                     } else if (map[step1x][step1y] == TRAP && (map[step2x][step2y] == BLANK || map[step2x][step2y] == HERO || map[step2x][step2y] == MONSTER)) {
-                        if (map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (map[step3x][step3y] == BLANK || map[step3x][step3y] == HERO || map[step3x][step3y] == MONSTER)) {
+                     } else if (state.map[step1x][step1y] == TRAP && (state.map[step2x][step2y] == BLANK || state.map[step2x][step2y] == HERO || state.map[step2x][step2y] == MONSTER)) {
+                        if (state.map[step2x][step2y] == BLANK) {
+                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == HERO || state.map[step3x][step3y] == MONSTER)) {
                               tempx = step3x;
                               tempy = step3y;
                            } else {
@@ -2285,15 +2208,15 @@ bool castSpell(Spell chosenSpell) {
                            tempx = step2x;
                            tempy = step2y;
                         }
-                        map[step1x][step1y] = BLANK;
-                        if (map[tempx][tempy] == BLANK) {
-                           map[tempx][tempy] = TRAP;
-                        } else if (map[tempx][tempy] == HERO) {
-                           if (!hero.dead) {
+                        state.map[step1x][step1y] = BLANK;
+                        if (state.map[tempx][tempy] == BLANK) {
+                           state.map[tempx][tempy] = TRAP;
+                        } else if (state.map[tempx][tempy] == HERO) {
+                           if (!state.hero->dead) {
                               addMessage("You blow a trap into the hero!", MessageType::SPELL);
-                              hero.health -= 4;
-                              if (hero.health <= 0) {
-                                 hero.dead = true;
+                              state.hero->health -= 4;
+                              if (state.hero->health <= 0) {
+                                 state.hero->dead = true;
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
@@ -2302,10 +2225,10 @@ bool castSpell(Spell chosenSpell) {
                            } else {
                               addMessage("You blow a trap into the hero's corpse!", MessageType::SPELL);
                            }
-                        } else if (map[tempx][tempy] == MONSTER) {
-                           Monster* target = findMonster(tempx, tempy);
+                        } else if (state.map[tempx][tempy] == MONSTER) {
+                           Monster* target = state.findMonster(tempx, tempy);
                            addMessage("You blow a trap into the " + target->name+ "!", MessageType::SPELL);
-                           hitMonster(target->x, target->y, 4);
+                           state.hitMonster(target->x, target->y, 4);
                         }
                      }
                   }
@@ -2377,12 +2300,12 @@ int getDirection() {
 }
 void generateMonsters(int level, int amount) {
    // Clear all existing monsters
-   monsterList.clear();
+   state.monsterList.clear();
    int tempx = 0, tempy = 0;
    for (int a = 0; a < 4; a++) {
       for (int i = 0; i < amount; i++) {
          tempx = 0; tempy = 0;
-         while (map[tempx][tempy] != BLANK) {
+         while (state.map[tempx][tempy] != BLANK) {
             if (a == 0) {
                tempx = randGen->getInt(0, (MAP_WIDTH-1)/2);
                tempy = randGen->getInt(0, (MAP_HEIGHT-1)/2);
@@ -2406,43 +2329,43 @@ void generateMonsters(int level, int amount) {
 void addSpecifiedMonster(int tempx, int tempy, int number, bool portalSpawned) {
    switch (number){
       case 0:
-         addMonster("rat", 'r', tempx, tempy, 3, 1, false, " ", 0.0f, 2, portalSpawned);
+         state.addMonster("rat", 'r', tempx, tempy, 3, 1, false, " ", 0.0f, 2, portalSpawned);
          break;
       case 1:
-         addMonster("kobold", 'k', tempx, tempy, 4, 2, false, " ", 0.0f, 2, portalSpawned);
+         state.addMonster("kobold", 'k', tempx, tempy, 4, 2, false, " ", 0.0f, 2, portalSpawned);
          break;
       case 2:
-         addMonster("sprite", 's', tempx, tempy, 5, 1, false, " ", 0.0f, 1, portalSpawned);
+         state.addMonster("sprite", 's', tempx, tempy, 5, 1, false, " ", 0.0f, 1, portalSpawned);
          break;
       case 3:
-         addMonster("dwarf", 'd', tempx, tempy, 9, 2, false, " ", 0.0f, 2, portalSpawned);
+         state.addMonster("dwarf", 'd', tempx, tempy, 9, 2, false, " ", 0.0f, 2, portalSpawned);
          break;
       case 4:
-         addMonster("skeleton archer", 'a', tempx, tempy, 5, 1, true, "shoots an arrow", 5.0f, 3, portalSpawned);
+         state.addMonster("skeleton archer", 'a', tempx, tempy, 5, 1, true, "shoots an arrow", 5.0f, 3, portalSpawned);
          break;
       case 5:
-         addMonster("ghost", 'g', tempx, tempy, 7, 2, false, "", 0.0f, 1, portalSpawned);
+         state.addMonster("ghost", 'g', tempx, tempy, 7, 2, false, "", 0.0f, 1, portalSpawned);
          break;
       case 6:
-         addMonster("orc", 'o', tempx, tempy, 10, 3, true, "throws an axe", 6.0f, 3, portalSpawned);
+         state.addMonster("orc", 'o', tempx, tempy, 10, 3, true, "throws an axe", 6.0f, 3, portalSpawned);
          break;
       case 7:
-         addMonster("ogre", 'O', tempx, tempy, 15, 4, false, "", 0.0f, 2, portalSpawned);
+         state.addMonster("ogre", 'O', tempx, tempy, 15, 4, false, "", 0.0f, 2, portalSpawned);
          break;
       case 8:
-         addMonster("dragon", 'D', tempx, tempy, 20, 6, true, "breathes fire", 3.0f, 4, portalSpawned);
+         state.addMonster("dragon", 'D', tempx, tempy, 20, 6, true, "breathes fire", 3.0f, 4, portalSpawned);
          break;
       case 9:
-         addMonster("troll", 'T', tempx, tempy, 30, 2, false, " ", 0.0f, 2, portalSpawned);
+         state.addMonster("troll", 'T', tempx, tempy, 30, 2, false, " ", 0.0f, 2, portalSpawned);
          break;
       case 10:
-         addMonster("wraith", 'W', tempx, tempy, 5, 1, true, "gazes", 12.0f, 2, portalSpawned);
+         state.addMonster("wraith", 'W', tempx, tempy, 5, 1, true, "gazes", 12.0f, 2, portalSpawned);
          break;
       case 11:
-         addMonster("golem", 'G', tempx, tempy, 40, 8, false, " ", 0.0f, 6, portalSpawned);
+         state.addMonster("golem", 'G', tempx, tempy, 40, 8, false, " ", 0.0f, 6, portalSpawned);
          break;
       case 12:
-         addMonster("hunter", 'H', tempx, tempy, 5, 5, false, " ", 0.0f, 1, portalSpawned);
+         state.addMonster("hunter", 'H', tempx, tempy, 5, 5, false, " ", 0.0f, 1, portalSpawned);
          break;
    }
 }
@@ -2462,24 +2385,24 @@ void displayRangedAttack(int x1, int y1, int x2, int y2) {
 
 void generateEndBoss() {
    int tempx = 0, tempy = 0;
-   while (map[tempx][tempy] != BLANK || dist(tempx, tempy, hero.x, hero.y) < 30) {
+   while (state.map[tempx][tempy] != BLANK || Utils::dist(tempx, tempy, state.hero->x, state.hero->y) < 30) {
       tempx = randGen->getInt(0, MAP_WIDTH-1);
       tempy = randGen->getInt(0, MAP_HEIGHT-1);
    }
    int boss = randGen->getInt(0, 2);
    if (boss == 0) {
-      addMonster("Master Summoner", '*', tempx, tempy, 20, 2, false, " ", 0.0f, 15, false); 
+      state.addMonster("Master Summoner", '*', tempx, tempy, 20, 2, false, " ", 0.0f, 15, false); 
       addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);
    } else if (boss == 1) {
-      addMonster("Noble Hero", '@', tempx, tempy, 30, 3, false, " ", 0.0f, 2, false); 
+      state.addMonster("Noble Hero", '@', tempx, tempy, 30, 3, false, " ", 0.0f, 2, false); 
       addMessage("Noble Hero: I have made it to the treasure first, my boastful rival.", MessageType::VILLAIN);
       addMessage("Noble Hero: I wish you no harm, do not force me to defend myself.", MessageType::VILLAIN);
    } else {
-      addMonster("Evil Mage", 'M', tempx, tempy, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
+      state.addMonster("Evil Mage", 'M', tempx, tempy, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
       addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
    }
-   hero.stairsx = tempx;
-   hero.stairsy = tempy;
+   state.hero->stairsx = tempx;
+   state.hero->stairsy = tempy;
 }
 
 void showVictoryScreen() {
@@ -2577,10 +2500,10 @@ bool applyMonsterCondition(Condition curCondition, bool append) {
    if (direction != 0) {
       int diffX = ((direction-1)%3)-1;
       int diffY = 1-((direction-1)/3);
-      int targetX = playerX + diffX;
-      int targetY = playerY + diffY;
-      if (map[targetX][targetY] == MONSTER) {
-         Monster* target = findMonster(targetX, targetY);
+      int targetX = state.player.x + diffX;
+      int targetY = state.player.y + diffY;
+      if (state.map[targetX][targetY] == MONSTER) {
+         Monster* target = state.findMonster(targetX, targetY);
          const auto& text = CONDITION_START.at(curCondition);
          addMessage(text.first + target->name + text.second, MessageType::SPELL);
          int& timer = target->conditionTimers.at(curCondition);

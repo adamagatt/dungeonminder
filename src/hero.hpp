@@ -4,6 +4,7 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "game_state.hpp"
 #include "monster.hpp"
 
 #include <unordered_set>
@@ -29,7 +30,7 @@ class HeroPathCallback : public ITCODPathCallback {
 
 class Hero {
    public:
-   Hero(Map& map, const MessageCallback& message) : map(map), heroPathCallback(map), message(message) { }
+   Hero(GameState& game, const MessageCallback& message) : game(game), heroPathCallback(game.map), message(message) { }
 
    bool move();
    void giveItem();
@@ -59,10 +60,12 @@ class Hero {
    static const std::array<std::string, 5> heroIllusion;
 
    private:
-   Map& map;
+   GameState& game;
    const MessageCallback& message;
    HeroPathCallback heroPathCallback;
    TCODPath path {MAP_WIDTH, MAP_HEIGHT, &heroPathCallback, nullptr, 0.0f};
+
+   static constexpr float SPELL_RADIUS = 8.0f;
 };
 
 #endif
