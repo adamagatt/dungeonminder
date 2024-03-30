@@ -1,0 +1,68 @@
+#ifndef __HERO_HPP_
+#define __HERO_HPP_
+
+#include "libtcod.hpp"
+
+#include "config.hpp"
+#include "monster.hpp"
+
+#include <unordered_set>
+
+class HeroPathCallback : public ITCODPathCallback {
+   public :
+   HeroPathCallback(Map& map) : map(map) { }
+
+   float getWalkCost(int xFrom, int yFrom, int xTo, int yTo, void *_userData ) const {
+      float cost = abs(xFrom-xTo)+abs(yFrom-yTo);
+      int dest = map[xTo][yTo];
+      if (dest == WALL) {
+         cost = MAP_WIDTH*MAP_HEIGHT+2;
+      } else if (dest == STAIRS || dest == STAIRS_UP || dest == CHEST || dest == CHEST_OPEN || dest == FIELD) {
+         cost = 0.0f;
+      }
+      return cost;
+   }
+
+   private:
+   Map& map;
+};
+
+class Hero {
+   public:
+   Hero(Map& map, const MessageCallback& message) : map(map), heroPathCallback(map), message(message) { }
+
+   bool move();
+   void giveItem();
+   void computePath();
+   bool gainHealth(int);
+   bool checkWin() const;
+   bool isAdjacent(int, int) const;
+   bool inSpellRadius() const;
+
+   int x, y, wait, timer, health, damage;
+   int dest1x, dest1y, dest2x, dest2y, stairsx, stairsy;
+   Monster* target;
+   int pathstep;
+   bool dead, slow, blinking;
+   int hasteTimer, pacifismTimer, shieldTimer, regenTimer, meditationTimer, seeInvisibleTimer, summonMonsterTimer;
+   std::unordered_set<Item> items;
+
+   static const std::array<std::string, 5> heroEntry;
+   static const std::array<std::string, 10> heroKills;
+   static const std::array<std::string, 10> heroFight;
+   static const std::array<std::string, 5> heroScared;
+   static const std::array<std::string, 5> heroExit;
+   static const std::array<std::string, 5> heroBump;
+   static const std::array<std::string, 10> heroItem;
+   static const std::array<std::string, 5> heroCharity;
+   static const std::array<std::string, 5> heroBlow;
+   static const std::array<std::string, 5> heroIllusion;
+
+   private:
+   Map& map;
+   const MessageCallback& message;
+   HeroPathCallback heroPathCallback;
+   TCODPath path {MAP_WIDTH, MAP_HEIGHT, &heroPathCallback, nullptr, 0.0f};
+};
+
+#endif
