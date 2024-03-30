@@ -69,19 +69,21 @@ gameLoop:
       state.map[0][0] = WALL;
 
       // Initialise the hero and player
-      int testX=-1, testY=-1;
-      while (!isEmptyPatch(testX, testY)) {
-         testX = Utils::randGen->getInt(2, MAP_WIDTH-2);
-         testY = Utils::randGen->getInt(2, MAP_HEIGHT-2);
+      Position test{-1, -1};
+      while (!isEmptyPatch(test)) {
+         test = {
+            Utils::randGen->getInt(2, MAP_WIDTH-2),
+            Utils::randGen->getInt(2, MAP_HEIGHT-2)
+         };
       }
-      state.map[testX][testY+1] = STAIRS_UP;
-      state.mapModel->setProperties(testX, testY+1, true, false);
+      state.map[test.x][test.y+1] = STAIRS_UP;
+      state.mapModel->setProperties(test.x, test.y+1, true, false);
 
-      state.player.x = testX;
-      state.player.y = testY-1;
+      state.player.x = test.x;
+      state.player.y = test.y-1;
       state.map[state.player.x][state.player.y] = PLAYER;
-      state.hero->x = testX;
-      state.hero->y = testY;
+      state.hero->x = test.x;
+      state.hero->y = test.y;
       state.map[state.hero->x][state.hero->y] = HERO;
       state.hero->health = 10;
       state.hero->damage = 5;
@@ -167,42 +169,33 @@ gameLoop:
       auto& console = *(TCODConsole::root);
       while (!TCODConsole::isWindowClosed() && !nextlevel) {
          turnTaken = false;
-         destx = state.player.x; desty = state.player.y;
-
+         Position dest = state.player;
 
          TCOD_key_t key = getKeyPress();
 
          if (key.vk == TCODK_UP || key.vk == TCODK_KP8 || key.c == 'k') {
-            destx = state.player.x;
-            desty = state.player.y-1;
+            dest = state.player.offset(0, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_DOWN || key.vk == TCODK_KP2 || key.c == 'j') {
-            destx = state.player.x;
-            desty = state.player.y+1;
+            dest = state.player.offset(0, +1);
             turnTaken = true;
          } else if (key.vk == TCODK_LEFT || key.vk == TCODK_KP4 || key.c == 'h') {
-            destx = state.player.x-1;
-            desty = state.player.y;
+            dest = state.player.offset(-1, 0);
             turnTaken = true;
          } else if (key.vk == TCODK_RIGHT || key.vk == TCODK_KP6 || key.c == 'l') {
-            destx = state.player.x+1;
-            desty = state.player.y;
+            dest = state.player.offset(+1, 0);
             turnTaken = true;
          } else if (key.vk == TCODK_KP7 || key.c == 'y') {
-            destx = state.player.x-1;
-            desty = state.player.y-1;
+            dest = state.player.offset(-1, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_KP9 || key.c == 'u') {
-            destx = state.player.x+1;
-            desty = state.player.y-1;
-            turnTaken = true;
-         } else if (key.vk == TCODK_KP3 || key.c == 'n') {
-            destx = state.player.x+1;
-            desty = state.player.y+1;
+            dest = state.player.offset(+1, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_KP1 || key.c == 'b') {
-            destx = state.player.x-1;
-            desty = state.player.y+1;
+            dest = state.player.offset(-1, +1);
+            turnTaken = true;
+         } else if (key.vk == TCODK_KP3 || key.c == 'n') {
+            dest = state.player.offset(+1, +1);
             turnTaken = true;
          } else if (key.vk == TCODK_SPACE || key.vk == TCODK_KP5) {
             turnTaken = true;
@@ -211,10 +204,9 @@ gameLoop:
          } else if (key.c == '\'') {
             int direction = getDirection();
             if (direction != 0) {
-               int diffX = ((direction-1)%3)-1;
-               int diffY = 1-((direction-1)/3);
-               state.map[state.player.x+diffX][state.player.y+diffY] = WALL;
-               state.mapModel->setProperties(state.player.x+diffX, state.player.y+diffY, false, false);
+               Position target = state.player.directionOffset(direction);
+               state.map[target.x][target.y] = WALL;
+               state.mapModel->setProperties(target.x, target.y, false, false);
                state.hero->computePath();
             }
          } else if (key.vk == TCODK_F8) {
@@ -241,34 +233,33 @@ gameLoop:
                addMessage("You: LISTEN!", MessageType::SPELL);
             }
          }
-         if (destx >= 0 && desty >= 0 && destx < MAP_WIDTH && desty < MAP_HEIGHT) {
-            if (state.map[destx][desty] == BLANK) {
+         if (dest.withinMap()) {
+            if (state.map[dest.x][dest.y] == BLANK) {
                state.map[state.player.x][state.player.y] = BLANK;
-               state.map[destx][desty] = PLAYER;
-               state.player.x = destx;
-               state.player.y = desty;
-            } else if (state.map[destx][desty] == MONSTER) {
-               Monster* curMonster = state.findMonster(destx, desty);
+               state.map[dest.x][dest.y] = PLAYER;
+               state.player = dest;
+            } else if (state.map[dest.x][dest.y] == MONSTER) {
+               Monster* curMonster = state.findMonster(dest);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
-            } else if (state.map[destx][desty] == HERO) {
+            } else if (state.map[dest.x][dest.y] == HERO) {
                if (state.hero->dead) {
                   addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
                } else {
                   addMessage("You are blocked by the hero", MessageType::NORMAL);
                }
-            } else if (state.map[destx][desty] == TRAP) {
+            } else if (state.map[dest.x][dest.y] == TRAP) {
                addMessage("You shy away from the trap", MessageType::NORMAL);
-            } else if (state.map[destx][desty] == FIELD) {
+            } else if (state.map[dest.x][dest.y] == FIELD) {
                addMessage("You are blocked by the forcefield", MessageType::NORMAL);
-            } else if (state.map[destx][desty] == ILLUSION) {
-               state.map[destx][desty] = BLANK;
+            } else if (state.map[dest.x][dest.y] == ILLUSION) {
+               state.map[dest.x][dest.y] = BLANK;
                state.illusion.x = -1; state.illusion.y = -1;
                addMessage("You disrupt the illusion", MessageType::SPELL);
-            } else if (state.map[destx][desty] == PORTAL) {
+            } else if (state.map[dest.x][dest.y] == PORTAL) {
                addMessage("You are blocked by a swirling portal", MessageType::NORMAL);
-            } else if (state.map[destx][desty] == CHEST || state.map[destx][desty] == CHEST_OPEN) {
+            } else if (state.map[dest.x][dest.y] == CHEST || state.map[dest.x][dest.y] == CHEST_OPEN) {
                addMessage("You are blocked by the chest", MessageType::NORMAL);
-            } else if (state.map[destx][desty] == STAIRS || state.map[destx][desty] == STAIRS_UP) {
+            } else if (state.map[dest.x][dest.y] == STAIRS || state.map[dest.x][dest.y] == STAIRS_UP) {
                addMessage("You are blocked by the stairs", MessageType::NORMAL);
             }
          }
@@ -854,6 +845,10 @@ bool isEmptyPatch(int x, int y) {
       result = state.map[x-1][y-1] == BLANK && state.map[x-1][y] == BLANK && state.map[x-1][y+1] == BLANK && state.map[x][y-1] == BLANK && state.map[x][y] == BLANK && state.map[x][y+1] == BLANK && state.map[x+1][y-1] == BLANK && state.map[x+1][y] == BLANK && state.map[x+1][y+1] == BLANK;
    }
    return result;
+}
+
+bool isEmptyPatch(const Position& pos) {
+   return isEmptyPatch(pos.x, pos.y);
 }
 
 void displayStatLine(int row) {
@@ -1772,13 +1767,10 @@ bool castSpell(Spell chosenSpell) {
       case Spell::MTRAP:
          direction = getDirection();
          if (direction != 0) {
-            int diffX = ((direction-1)%3)-1;
-            int diffY = 1-((direction-1)/3);
-            int targetX = state.player.x + diffX;
-            int targetY = state.player.y + diffY;
-            if ((targetX >= 0) && (targetY >= 0) && (targetX < MAP_WIDTH) && (targetY < MAP_HEIGHT) && state.map[targetX][targetY] == BLANK) {
+            Position target = state.player.directionOffset(direction);
+            if (target.withinMap() && state.map[target.x][target.y] == BLANK) {
                addMessage("You create a trap in the ground", MessageType::SPELL);
-               state.map[targetX][targetY] = TRAP;
+               state.map[target.x][target.y] = TRAP;
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -1953,14 +1945,11 @@ bool castSpell(Spell chosenSpell) {
       case Spell::MAIM:
          direction = getDirection();
          if (direction != 0) {
-            int diffX = ((direction-1)%3)-1;
-            int diffY = 1-((direction-1)/3);
-            int targetX = state.player.x + diffX;
-            int targetY = state.player.y + diffY;
-            if (state.map[targetX][targetY] == MONSTER) {
-               Monster* target = state.findMonster(targetX, targetY);
-               addMessage("The " + target->name + " looks pained!", MessageType::SPELL);
-               target->maimed = true;
+            Position target = state.player.directionOffset(direction);
+            if (state.map[target.x][target.y] == MONSTER) {
+               Monster* targetMonster = state.findMonster(target);
+               addMessage("The " + targetMonster->name + " looks pained!", MessageType::SPELL);
+               targetMonster->maimed = true;
             } else {
                addMessage("The spell fizzles in empty air", MessageType::SPELL);
             }
@@ -1970,14 +1959,11 @@ bool castSpell(Spell chosenSpell) {
       case Spell::CRIPPLE:
          direction = getDirection();
          if (direction != 0) {
-            int diffX = ((direction-1)%3)-1;
-            int diffY = 1-((direction-1)/3);
-            int targetX = state.player.x + diffX;
-            int targetY = state.player.y + diffY;
-            if (state.map[targetX][targetY] == MONSTER) {
-               Monster* target = state.findMonster(targetX, targetY);
-               addMessage("A terrible snap comes from inside the " + target->name + "!", MessageType::SPELL);
-               target->health = (target->health+1)/2;
+            Position target = state.player.directionOffset(direction);
+            if (state.map[target.x][target.y] == MONSTER) {
+               Monster* targetMonster = state.findMonster(target);
+               addMessage("A terrible snap comes from inside the " + targetMonster->name + "!", MessageType::SPELL);
+               targetMonster->health = (targetMonster->health+1)/2;
             } else {
                addMessage("The spell fizzles in empty air", MessageType::SPELL);
             }
@@ -1987,16 +1973,13 @@ bool castSpell(Spell chosenSpell) {
       case Spell::MILLUSION:
          direction = getDirection();
          if (direction != 0) {
-            int diffX = ((direction-1)%3)-1;
-            int diffY = 1-((direction-1)/3);
-            int targetX = state.player.x + diffX;
-            int targetY = state.player.y + diffY;
-            if (targetX >= 0 && targetY >= 0 && targetX < MAP_WIDTH && targetY < MAP_HEIGHT && state.map[targetX][targetY] == BLANK ) {
+            Position target = state.player.directionOffset(direction);
+            if (target.withinMap() && state.map[target.x][target.y] == BLANK ) {
                if (state.illusion.x != -1) {
                   state.map[state.illusion.x][state.illusion.y] = BLANK;
                }
-               state.illusion.x = targetX; state.illusion.y = targetY;
-               state.map[targetX][targetY] = ILLUSION;
+               state.illusion = target;
+               state.map[target.x][target.y] = ILLUSION;
                drawScreen();
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
@@ -2054,47 +2037,45 @@ bool castSpell(Spell chosenSpell) {
             bool fieldMade = false;
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
-            int curX = 0;
-            int curY = 0;
+            Position curr{0, 0};
             if (diffX == 0 || diffY == 0) {
                for (int i = -2; i <= 2; i++) {
-                  curX = state.player.x+diffX+(i*(1-abs(diffX)));
-                  curY = state.player.y+diffY+(i*(1-abs(diffY)));
-                  if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curX][curY] = FIELD;
-                     state.mapModel->setProperties(curX, curY, false, false);
+                  curr = state.player.offset(diffX+(i*(1-abs(diffX))), diffY+(i*(1-abs(diffY))));
+                  if (state.map[curr.x][curr.y] == BLANK) {
+                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map[curr.x][curr.y] = FIELD;
+                     state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
                }
                for (int i = -1; i <= 1; i++) {
-                  curX = state.player.x+diffX*2+(i*(1-abs(diffX)));
-                  curY = state.player.y+diffY*2+(i*(1-abs(diffY)));
-                  if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curX][curY] = FIELD;
-                     state.mapModel->setProperties(curX, curY, false, false);
+                  curr = state.player.offset(diffX*2+(i*(1-abs(diffX))), diffY*2+(i*(1-abs(diffY))));
+                  if (state.map[curr.x][curr.y] == BLANK) {
+                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map[curr.x][curr.y] = FIELD;
+                     state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
                }
             } else {
                for (int i = -1; i <= 1; i++) {
-                  curX = state.player.x+diffX-(i*diffX);
-                  curY = state.player.y+diffY+(i*diffY);
-                  if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curX][curY] = FIELD;
-                     state.mapModel->setProperties(curX, curY, false, false);
+                  curr = state.player.offset(diffX-(i*diffX), diffY+(i*diffY));
+                  if (state.map[curr.x][curr.y] == BLANK) {
+                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map[curr.x][curr.y] = FIELD;
+                     state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
                }
                for (int i = 0; i <= 3; i++) {
-                  curX = (int)(state.player.x+(float)diffX/2-((i-1.5)*diffX));
-                  curY = (int)(state.player.y+(float)diffY/2+((i-1.5)*diffY));
-                  if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curX][curY] = FIELD;
-                     state.mapModel->setProperties(curX, curY, false, false);
+                  curr = state.player.offset(
+                     static_cast<int>(diffX/2.0f-((i-1.5)*diffX)),
+                     static_cast<int>(diffY/2.0f+((i-1.5)*diffY))
+                  );
+                  if (state.map[curr.x][curr.y] == BLANK) {
+                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map[curr.x][curr.y] = FIELD;
+                     state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
                }
@@ -2114,69 +2095,60 @@ bool castSpell(Spell chosenSpell) {
          for (int i = -1; i < 2; i++) {
             for (int j = -1; j < 2; j++) {
                if (i != 0 || j != 0) {
-                  int step1x = state.player.x+i;
-                  int step1y = state.player.y+j;
-                  int step2x = state.player.x+2*i;
-                  int step2y = state.player.y+2*j;
-                  int step3x = state.player.x+3*i;
-                  int step3y = state.player.y+3*j;
-                  int tempx = step1x, tempy = step1y;
+                  Position step1 = state.player.offset(i, j);
+                  Position step2 = state.player.offset(2*i, 2*j);
+                  Position step3 = state.player.offset(3*i, 3*j);
+                  Position temp{step1.x, step1.y};
                   bool trapSprung = false;
-                  if (step1x >= 0 && step1y >= 0 && step2x>= 0 && step2y >= 0 && step1x < MAP_WIDTH && step1y < MAP_HEIGHT && step2x < MAP_WIDTH && step2y < MAP_HEIGHT) {
-                     if (state.map[step1x][step1y] == MONSTER) {
-                        if (state.map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == TRAP)) {
-                              tempx = step3x;
-                              tempy = step3y;
-                              if (state.map[step3x][step3y] == TRAP) {
+                  if (step1.withinMap() && step2.withinMap()) {
+                     if (state.map[step1.x][step1.y] == MONSTER) {
+                        if (state.map[step2.x][step2.y] == BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == TRAP)) {
+                              temp = {step3.x, step3.y};
+                              if (state.map[step3.x][step3.y] == TRAP) {
                                  trapSprung = true;
                               }
                            } else {
-                              tempx = step2x;
-                              tempy = step2y;
+                              temp = step2;
                            }
-                        } else if (state.map[step2x][step2y] == TRAP) {
+                        } else if (state.map[step2.x][step2.y] == TRAP) {
                            trapSprung = true;
-                           tempx = step2x;
-                           tempy = step2y;
+                           temp = step2;
                         }
-                        Monster* target = state.findMonster(step1x, step1y);
+                        Monster* target = state.findMonster(step1);
                         target->timer = target->wait;
-                        state.map[step1x][step1y] = BLANK;
-                        state.map[tempx][tempy] = MONSTER;
-                        target->x = tempx; target->y = tempy;
+                        state.map[step1.x][step1.y] = BLANK;
+                        state.map[temp.x][temp.y] = MONSTER;
+                        target->x = temp.x; target->y = temp.y;
                         if (trapSprung) {
                            addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
                            state.hitMonster(target->x, target->y, 4);
                         }
-                     } else if (state.map[step1x][step1y] == HERO) {
-                        if (state.map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == TRAP)) {
-                              tempx = step3x;
-                              tempy = step3y;
-                              if (state.map[step3x][step3y] == TRAP) {
+                     } else if (state.map[step1.x][step1.y] == HERO) {
+                        if (state.map[step2.x][step2.y] == BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == TRAP)) {
+                              temp = step3;
+                              if (state.map[step3.x][step3.y] == TRAP) {
                                  trapSprung = true;
                               }
                            } else {
-                              tempx = step2x;
-                              tempy = step2y;
+                              temp = step2;
                            }
-                        } else if (state.map[step2x][step2y] == TRAP) {
+                        } else if (state.map[step2.x][step2.y] == TRAP) {
                            trapSprung = true;
-                           tempx = step2x;
-                           tempy = step2y;
+                           temp = step2;
                         }
-                        state.map[step1x][step1y] = BLANK;
-                        state.map[tempx][tempy] = HERO;
-                        state.hero->x = tempx; state.hero->y = tempy;
+                        state.map[step1.x][step1.y] = BLANK;
+                        state.map[temp.x][temp.y] = HERO;
+                        state.hero->x = temp.x; state.hero->y = temp.y;
                         state.hero->timer = state.hero->wait;
                         if (trapSprung) {
                            if (!state.hero->dead) {
                               addMessage("The hero is blown into the trap!", MessageType::SPELL);
                               state.hero->health -= 4;
-                              state.map[step1x][step1y] = BLANK;
-                              state.map[tempx][tempy] = HERO;
-                              state.hero->x = tempx; state.hero->y = tempy;
+                              state.map[step1.x][step1.y] = BLANK;
+                              state.map[temp.x][temp.y] = HERO;
+                              state.hero->x = temp.x; state.hero->y = temp.y;
                               if (state.hero->health <= 0) {
                                  state.hero->dead = true;
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
@@ -2185,9 +2157,9 @@ bool castSpell(Spell chosenSpell) {
                                  addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
                            } else {
-                              state.map[step1x][step1y] = BLANK;
-                              state.map[tempx][tempy] = HERO;
-                              state.hero->x = tempx; state.hero->y = tempy;
+                              state.map[step1.x][step1.y] = BLANK;
+                              state.map[temp.x][temp.y] = HERO;
+                              state.hero->x = temp.x; state.hero->y = temp.y;
                               addMessage("The hero's corpse is blown into the trap!", MessageType::SPELL);
                            }
                         } else {
@@ -2195,23 +2167,20 @@ bool castSpell(Spell chosenSpell) {
                               addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                            }
                         }
-                     } else if (state.map[step1x][step1y] == TRAP && (state.map[step2x][step2y] == BLANK || state.map[step2x][step2y] == HERO || state.map[step2x][step2y] == MONSTER)) {
-                        if (state.map[step2x][step2y] == BLANK) {
-                           if (step3x>= 0 && step3x < MAP_WIDTH && step3y >= 0 && step3y < MAP_HEIGHT && (state.map[step3x][step3y] == BLANK || state.map[step3x][step3y] == HERO || state.map[step3x][step3y] == MONSTER)) {
-                              tempx = step3x;
-                              tempy = step3y;
+                     } else if (state.map[step1.x][step1.y] == TRAP && (state.map[step2.x][step2.y] == BLANK || state.map[step2.x][step2.y] == HERO || state.map[step2.x][step2.y] == MONSTER)) {
+                        if (state.map[step2.x][step2.y] == BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == HERO || state.map[step3.x][step3.y] == MONSTER)) {
+                              temp = step3;
                            } else {
-                              tempx = step2x;
-                              tempy = step2y;
+                              temp = step2;
                            }
                         } else {
-                           tempx = step2x;
-                           tempy = step2y;
+                           temp = step2;
                         }
-                        state.map[step1x][step1y] = BLANK;
-                        if (state.map[tempx][tempy] == BLANK) {
-                           state.map[tempx][tempy] = TRAP;
-                        } else if (state.map[tempx][tempy] == HERO) {
+                        state.map[step1.x][step1.y] = BLANK;
+                        if (state.map[temp.x][temp.y] == BLANK) {
+                           state.map[temp.x][temp.y] = TRAP;
+                        } else if (state.map[temp.x][temp.y] == HERO) {
                            if (!state.hero->dead) {
                               addMessage("You blow a trap into the hero!", MessageType::SPELL);
                               state.hero->health -= 4;
@@ -2225,8 +2194,8 @@ bool castSpell(Spell chosenSpell) {
                            } else {
                               addMessage("You blow a trap into the hero's corpse!", MessageType::SPELL);
                            }
-                        } else if (state.map[tempx][tempy] == MONSTER) {
-                           Monster* target = state.findMonster(tempx, tempy);
+                        } else if (state.map[temp.x][temp.y] == MONSTER) {
+                           Monster* target = state.findMonster(temp);
                            addMessage("You blow a trap into the " + target->name+ "!", MessageType::SPELL);
                            state.hitMonster(target->x, target->y, 4);
                         }
@@ -2456,13 +2425,12 @@ bool applyMonsterCondition(Condition curCondition, bool append) {
    if (direction != 0) {
       int diffX = ((direction-1)%3)-1;
       int diffY = 1-((direction-1)/3);
-      int targetX = state.player.x + diffX;
-      int targetY = state.player.y + diffY;
-      if (state.map[targetX][targetY] == MONSTER) {
-         Monster* target = state.findMonster(targetX, targetY);
+      Position target = state.player.offset(diffX, diffY);
+      if (state.map[target.x][target.y] == MONSTER) {
+         Monster* targetMonster = state.findMonster(target);
          const auto& text = CONDITION_START.at(curCondition);
-         addMessage(text.first + target->name + text.second, MessageType::SPELL);
-         int& timer = target->conditionTimers.at(curCondition);
+         addMessage(text.first + targetMonster->name + text.second, MessageType::SPELL);
+         int& timer = targetMonster->conditionTimers.at(curCondition);
          const int amount = CONDITION_TIMES.at(curCondition);
          if (append) {
             timer += amount;

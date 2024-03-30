@@ -21,9 +21,6 @@ using namespace std::string_literals;
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
-// Relating to the player
-int destx = 0, desty = 0;
-
 // Relating to messages and the message list
 std::array<std::string, MESSAGE_COUNT> messageList;
 std::array<MessageType, MESSAGE_COUNT> messageType;
@@ -78,6 +75,7 @@ void generateEndBoss();
 
 /** Utility */
 bool isEmptyPatch(int, int);
+bool isEmptyPatch(const Position& pos);
 int getDirection();
 TCOD_key_t getKeyPress();
 

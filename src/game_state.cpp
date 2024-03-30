@@ -8,6 +8,11 @@ GameState::GameState(const MessageCallback& message, const RedrawCallback& redra
     hero{std::make_unique<Hero>(*this, message, redrawCallback)}
 { }
 
+Monster* GameState::findMonster(const Position& p) {
+   return findMonster(p.x, p.y);
+}
+
+
 Monster* GameState::findMonster(int x, int y) {
    auto found = std::ranges::find_if(
       monsterList,
