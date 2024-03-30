@@ -3,9 +3,9 @@
 #include "hero.hpp"
 #include "monster.hpp"
 
-GameState::GameState(const MessageCallback& message) :
+GameState::GameState(const MessageCallback& message, const RedrawCallback& redrawCallback) :
     message(message),
-    hero{std::make_unique<Hero>(*this, message)}
+    hero{std::make_unique<Hero>(*this, message, redrawCallback)}
 { }
 
 Monster* GameState::findMonster(int x, int y) {

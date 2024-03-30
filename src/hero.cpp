@@ -1,10 +1,14 @@
 #include "hero.hpp"
 #include "utils.hpp"
 
-
 using namespace std::string_literals;
 
-TCODRandom * randGen = TCODRandom::getInstance();
+Hero::Hero(GameState& game, const MessageCallback& message, const RedrawCallback& redrawCallback) :
+   game(game),
+   heroPathCallback(game.map),
+   message(message),
+   redrawCallback(redrawCallback)
+   { }
 
 bool Hero::checkWin() const {
    bool result = false;
@@ -15,20 +19,20 @@ bool Hero::checkWin() const {
 }
 
 void Hero::giveItem() {
-   const int itemIdx = randGen->getInt(0, ITEM_COUNT-1);
+   const int itemIdx = Utils::randGen->getInt(0, ITEM_COUNT-1);
    const Item itemFound = static_cast<Item>(itemIdx);
    // Display messages
    message("The hero finds " + ITEM_NAME.at(itemFound) + "!", MessageType::IMPORTANT);
-   message("Hero: " + heroItem[randGen->getInt(0, 9)], MessageType::HERO);
+   message("Hero: " + heroItem[Utils::randGen->getInt(0, 9)], MessageType::HERO);
    // Apply immediate effects of any item
    switch (itemFound) {
       case Item::scrollEarthquake:
          for (int i =0; i < MAP_WIDTH; i++) {
             for (int j = 0; j < MAP_HEIGHT; j++) {
-               if (game.map[i][j] == BLANK && randGen->getInt(0, 29) == 0) {
+               if (game.map[i][j] == BLANK && Utils::randGen->getInt(0, 29) == 0) {
                   game.map[i][j] = WALL;
                   game.mapModel->setProperties(i, j, false, false);
-               } else if (game.map[i][j] == WALL && randGen->getInt(0, 10) == 0) {
+               } else if (game.map[i][j] == WALL && Utils::randGen->getInt(0, 10) == 0) {
                   game.map[i][j] = BLANK;
                   game.mapModel->setProperties(i, j, true, true);
                }
@@ -126,7 +130,7 @@ bool Hero::move() {
          if (seeInvisibleTimer > 0 && Utils::dist(x, y, game.player.x, game.player.y) < 2 && game.mapModel->isInFov(x, y)) {
             diffx = x-game.player.x;
             diffy = y-game.player.y;
-            message("Hero: " + heroScared[randGen->getInt(0, 4)], MessageType::HERO);
+            message("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (game.illusion.x != -1 && game.mapModel->isInFov(game.illusion.x, game.illusion.y)) {
             // If the hero sees the illusion, it takes priority
             int ptx = 0, pty = 0;
@@ -139,8 +143,8 @@ bool Hero::move() {
                if (y > pty) diffy = -1;
                if (y < pty) diffy = 1;
             } else {
-               diffx = randGen->getInt(-1, 1);
-               diffy = randGen->getInt(-1, 1);
+               diffx = Utils::randGen->getInt(-1, 1);
+               diffy = Utils::randGen->getInt(-1, 1);
             }
          } else if (target == nullptr || pacifismTimer > 0) {
             // If the hero doesn't have a target, attempt to find one
@@ -148,7 +152,7 @@ bool Hero::move() {
                target = game.heroFindMonster();
             }
             if (target != nullptr) {
-               message("Hero: " + heroFight[randGen->getInt(0, 9)], MessageType::HERO);
+               message("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                pathstep = 0;
                path.compute(x, y, target->x, target->y); 
             } else {
@@ -190,12 +194,12 @@ bool Hero::move() {
                if (y > pty) diffy = -1;
                if (y < pty) diffy = 1;
             } else {
-               diffx = randGen->getInt(-1, 1);
-               diffy = randGen->getInt(-1, 1);
+               diffx = Utils::randGen->getInt(-1, 1);
+               diffy = Utils::randGen->getInt(-1, 1);
             }
          }
          if (diffx != 0 && diffy != 0) {
-            if (randGen->getInt(0, 1) == 0) {
+            if (Utils::randGen->getInt(0, 1) == 0) {
                diffx = 0;
             } else {
                diffy = 0;
@@ -206,7 +210,7 @@ bool Hero::move() {
                game.mapModel->setProperties(x+diffx, y+diffy, true, false);
                computePath();
                game.mapModel->setProperties(x+diffx, y+diffy, true, true);
-               message("Hero: "+heroBump[randGen->getInt(0, 4)], MessageType::HERO);
+               message("Hero: "+heroBump[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             } else {
                target = game.findMonster(x+diffx, y+diffy);
                char buffer[20];
@@ -229,12 +233,12 @@ bool Hero::move() {
                      if (health <= 0) {
                         dead = true;
                         message("The hero has died!", MessageType::IMPORTANT);
-                        drawScreen();
+                        redrawCallback();
                      }
 
                   }
                   if (!dead) {
-                     message("Hero: "+heroKills[randGen->getInt(0, 9)], MessageType::HERO);
+                     message("Hero: "+heroKills[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                      computePath();
                   }
                }
@@ -253,13 +257,13 @@ bool Hero::move() {
             if (health <= 0) {
                dead = true;
                message("The hero has died!", MessageType::IMPORTANT);
-               drawScreen();
+               redrawCallback();
             }
          } else if (game.map[x+diffx][y+diffy] == ILLUSION) {
             game.map[x+diffx][y+diffy] = BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
             message("The hero disrupts the illusion", MessageType::SPELL);
-            message("Hero: " + heroIllusion[randGen->getInt(0, 4)], MessageType::HERO);
+            message("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (game.map[x+diffx][y+diffy] == BLANK) {
             x += diffx;
             y += diffy;
@@ -270,7 +274,7 @@ bool Hero::move() {
             game.map[game.player.x][game.player.y] = PLAYER;
          }
          game.map[x][y] = HERO;
-         if ((items.contains(Item::slowBoots) && randGen->getInt(1, 2) == 1) || slow) {
+         if ((items.contains(Item::slowBoots) && Utils::randGen->getInt(1, 2) == 1) || slow) {
             timer = wait*3/2;
          } else {
             timer = wait;
@@ -285,7 +289,7 @@ bool Hero::move() {
             shieldTimer--;
             if (shieldTimer == 0) {
                message("The hero's magical shield fades", MessageType::SPELL);
-               drawScreen();
+               redrawCallback();
             }
          }
          if (seeInvisibleTimer > 0) {
@@ -323,10 +327,10 @@ bool Hero::move() {
       if (game.monsterList.size() < MAX_MONSTERS && summonMonsterTimer%15 == 1) {
          int lx = 0, ly = 0;
          while (game.map[lx][ly] != BLANK || Utils::dist(x, y, lx, ly) > 10) {
-            lx = randGen->getInt(0, MAP_WIDTH-1);
-            ly = randGen->getInt(0, MAP_HEIGHT-1);
+            lx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+            ly = Utils::randGen->getInt(0, MAP_HEIGHT-1);
          }
-         int randomMonster = randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
+         int randomMonster = Utils::randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
          game.addSpecifiedMonster(lx, ly, randomMonster, true);
       }
    }
@@ -368,7 +372,7 @@ bool Hero::move() {
                         if (health <= 0) {
                            dead = true;
                            message("The hero has died!", MessageType::IMPORTANT);
-                           drawScreen();
+                           redrawCallback();
                         }
                      } else {
                         message("A trap is pulled onto the hero's corpse!", MessageType::NORMAL);

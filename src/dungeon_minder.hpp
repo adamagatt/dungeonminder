@@ -46,7 +46,6 @@ int field [MAP_WIDTH][MAP_HEIGHT];
 float floorNoise [MAP_WIDTH][MAP_HEIGHT];
 float wallNoise [MAP_WIDTH][MAP_HEIGHT];
 
-TCODRandom * randGen = TCODRandom::getInstance();
 TCODConsole * spellMenu;
 
 // Relating to the different game modes
@@ -82,7 +81,7 @@ bool isEmptyPatch(int, int);
 int getDirection();
 TCOD_key_t getKeyPress();
 
-GameState state{addMessage};
+GameState state{addMessage, drawScreen};
 
 class WithBackgroundSet {
    public:

@@ -37,11 +37,11 @@ gameLoop:
          displayUpgradeMenu();
       }
       bool nextlevel = false;
-      addMessage("Hero: " + Hero::heroEntry[randGen->getInt(0, 4)], MessageType::HERO);
+      addMessage("Hero: " + Hero::heroEntry[Utils::randGen->getInt(0, 4)], MessageType::HERO);
 
       // Generate Map Noise
-      TCODNoise wallNoiseGen = TCODNoise(2, randGen);
-      TCODNoise floorNoiseGen = TCODNoise(2, randGen);
+      TCODNoise wallNoiseGen = TCODNoise(2, Utils::randGen);
+      TCODNoise floorNoiseGen = TCODNoise(2, Utils::randGen);
       for (int j = 0; j < MAP_HEIGHT; j++) {
          for (int i = 0; i < MAP_WIDTH; i++) {
             float location[2] = {((float)i*2)/MAP_WIDTH-1, ((float)j*2)/MAP_HEIGHT-1};
@@ -71,8 +71,8 @@ gameLoop:
       // Initialise the hero and player
       int x=-1, y=-1;
       while (!isEmptyPatch(x, y)) {
-         x = randGen->getInt(2, MAP_WIDTH-2);
-         y = randGen->getInt(2, MAP_HEIGHT-2);
+         x = Utils::randGen->getInt(2, MAP_WIDTH-2);
+         y = Utils::randGen->getInt(2, MAP_HEIGHT-2);
       }
       state.map[x][y+1] = STAIRS_UP;
       state.mapModel->setProperties(x, y+1, true, false);
@@ -114,8 +114,8 @@ gameLoop:
       if (state.level < 10) {
          // Place the stairs
          while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20)  {
-            tempx = randGen->getInt(0, MAP_WIDTH-1);
-            tempy = randGen->getInt(0, MAP_HEIGHT-1);
+            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
          }
          state.map[tempx][tempy] = STAIRS;
          state.hero->stairsx = tempx; state.hero->stairsy = tempy+1;
@@ -124,16 +124,16 @@ gameLoop:
          // Place the chests
          tempx = 0; tempy = 0;
          while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
-            tempx = randGen->getInt(0, MAP_WIDTH-1);
-            tempy = randGen->getInt(0, MAP_HEIGHT-1);
+            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
          }
          state.map[tempx][tempy] = CHEST;
          state.mapModel->setProperties(tempx, tempy, true, false);
          state.hero->dest1x = tempx; state.hero->dest1y = tempy+1;
          tempx = 0; tempy = 0;
          while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->dest1x, state.hero->dest1y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
-            tempx = randGen->getInt(0, MAP_WIDTH-1);
-            tempy = randGen->getInt(0, MAP_HEIGHT-1);
+            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
          }
          state.map[tempx][tempy] = CHEST;
          state.mapModel->setProperties(tempx, tempy, true, false);
@@ -145,8 +145,8 @@ gameLoop:
       for (int i = 0; i < 10; i++) {
          tempx = 0; tempy = 0;
          while (state.map[tempx][tempy] != BLANK) {
-            tempx = randGen->getInt(0, MAP_WIDTH-1);
-            tempy = randGen->getInt(0, MAP_HEIGHT-1);
+            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
          }
          state.map[tempx][tempy] = TRAP;
       }
@@ -235,7 +235,7 @@ gameLoop:
          } else if (key.c == 'm') {
             displayMessageHistory();
          } else if (key.c == 'v') {
-            if (randGen->getInt(1, 2) == 1) {
+            if (Utils::randGen->getInt(1, 2) == 1) {
                addMessage("You: HEY!", MessageType::SPELL);
             } else {
                addMessage("You: LISTEN!", MessageType::SPELL);
@@ -325,7 +325,7 @@ gameLoop:
          }
          if (nextlevel && state.level < 10) {
             // Display the next state.level
-            addMessage("Hero: " + Hero::heroExit[randGen->getInt(0, 4)], MessageType::HERO);
+            addMessage("Hero: " + Hero::heroExit[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             addMessage("The hero descends to the next state.level of the dungeon!", MessageType::IMPORTANT);
          } else {
             state.mapModel->computeFov(state.hero->x, state.hero->y);
@@ -589,8 +589,8 @@ void monsterMove(Monster& curMonster) {
                         if (state.hero->y > curMonster.y) diffy = 1;
                         if (state.hero->y < curMonster.y) diffy = -1;
                      } else {
-                        diffx = randGen->getInt(-1, 1);
-                        diffy = randGen->getInt(-1, 1);
+                        diffx = Utils::randGen->getInt(-1, 1);
+                        diffy = Utils::randGen->getInt(-1, 1);
                      }
                   } else {
                      if (nearestMonsterDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
@@ -599,8 +599,8 @@ void monsterMove(Monster& curMonster) {
                         if (nearestMonster->y > curMonster.y) diffy = 1;
                         if (nearestMonster->y < curMonster.y) diffy = -1;
                      } else {
-                        diffx = randGen->getInt(-1, 1);
-                        diffy = randGen->getInt(-1, 1);
+                        diffx = Utils::randGen->getInt(-1, 1);
+                        diffy = Utils::randGen->getInt(-1, 1);
                      }
                   }
                } else if (curMonster.angry && !state.hero->dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || state.hero->isAdjacent(curMonster.x, curMonster.y))) {
@@ -617,11 +617,11 @@ void monsterMove(Monster& curMonster) {
                         curMonster.angry = true;
                      }
                   }
-                  diffx = randGen->getInt(-1, 1);
-                  diffy = randGen->getInt(-1, 1);
+                  diffx = Utils::randGen->getInt(-1, 1);
+                  diffy = Utils::randGen->getInt(-1, 1);
                }
                if (diffx != 0 && diffy != 0) {
-                  if (randGen->getInt(0, 1) == 0) {
+                  if (Utils::randGen->getInt(0, 1) == 0) {
                      diffx = 0;
                   } else {
                      diffy = 0;
@@ -722,10 +722,10 @@ void monsterMove(Monster& curMonster) {
                if (state.monsterList.size() < MAX_MONSTERS) {
                   int lx = 0, ly = 0;
                   while (state.map[lx][ly] != BLANK) {
-                     lx = randGen->getInt(0, MAP_WIDTH-1);
-                     ly = randGen->getInt(0, MAP_HEIGHT-1);
+                     lx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+                     ly = Utils::randGen->getInt(0, MAP_HEIGHT-1);
                   }
-                  state.addSpecifiedMonster(lx, ly, randGen->getInt(0, 12), true);
+                  state.addSpecifiedMonster(lx, ly, Utils::randGen->getInt(0, 12), true);
                }
             }
             curMonster.timer = curMonster.wait;
@@ -769,17 +769,17 @@ void drawBSP(TCODBsp* curBSP) {
          int y1 = curBSP->y;
          int y2 = curBSP->y+curBSP->h-1;
          for (int i = x1+2; i <= x2-2; i++) {
-            for (int j = y1+randGen->getInt(1, 2); j <= y2-randGen->getInt(1, 2); j++) {
+            for (int j = y1+Utils::randGen->getInt(1, 2); j <= y2-Utils::randGen->getInt(1, 2); j++) {
                state.map[i][j] = BLANK;
                state.mapModel->setProperties(i, j, true, true);
             }
          }
          for (int j = y1+2; j <= y2-2; j++) {
-            if (randGen->getInt(1, 2) == 1) {
+            if (Utils::randGen->getInt(1, 2) == 1) {
                state.map[x1+1][j] = BLANK;
                state.mapModel->setProperties(x1+1, j, true, true);
             }
-            if (randGen->getInt(1, 2) == 1) {
+            if (Utils::randGen->getInt(1, 2) == 1) {
                state.map[x2-1][j] = BLANK;
                state.mapModel->setProperties(x2-1, j, true, true);
             }
@@ -1829,7 +1829,7 @@ bool castSpell(Spell chosenSpell) {
                }
                // If an item was dropped, the hero is healed
                if (itemDropped) {
-                  addMessage("Hero: " + Hero::heroCharity[randGen->getInt(0, 4)], MessageType::HERO);
+                  addMessage("Hero: " + Hero::heroCharity[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                   state.hero->gainHealth(10);
                   spellCast = true;
                } else {
@@ -1934,8 +1934,8 @@ bool castSpell(Spell chosenSpell) {
          break;
       case Spell::MINEFIELD:
          for (int i = 0; i < 5; i++) {
-            int tempx = state.player.x+randGen->getInt(-2, 2);
-            int tempy = state.player.y+randGen->getInt(-2, 2);
+            int tempx = state.player.x+Utils::randGen->getInt(-2, 2);
+            int tempy = state.player.y+Utils::randGen->getInt(-2, 2);
             if (tempx >= 0 && tempy >= 0 && tempx < MAP_WIDTH && tempy < MAP_HEIGHT) {
                if (state.map[tempx][tempy] == BLANK) {
                   state.map[tempx][tempy] = TRAP;
@@ -2061,7 +2061,7 @@ bool castSpell(Spell chosenSpell) {
                   curX = state.player.x+diffX+(i*(1-abs(diffX)));
                   curY = state.player.y+diffY+(i*(1-abs(diffY)));
                   if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
+                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.map[curX][curY] = FIELD;
                      state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
@@ -2071,7 +2071,7 @@ bool castSpell(Spell chosenSpell) {
                   curX = state.player.x+diffX*2+(i*(1-abs(diffX)));
                   curY = state.player.y+diffY*2+(i*(1-abs(diffY)));
                   if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
+                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.map[curX][curY] = FIELD;
                      state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
@@ -2082,7 +2082,7 @@ bool castSpell(Spell chosenSpell) {
                   curX = state.player.x+diffX-(i*diffX);
                   curY = state.player.y+diffY+(i*diffY);
                   if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
+                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.map[curX][curY] = FIELD;
                      state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
@@ -2092,7 +2092,7 @@ bool castSpell(Spell chosenSpell) {
                   curX = (int)(state.player.x+(float)diffX/2-((i-1.5)*diffX));
                   curY = (int)(state.player.y+(float)diffY/2+((i-1.5)*diffY));
                   if (state.map[curX][curY] == BLANK) {
-                     field[curX][curY] = FIELD_TIME-randGen->getInt(1, 3);
+                     field[curX][curY] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.map[curX][curY] = FIELD;
                      state.mapModel->setProperties(curX, curY, false, false);
                      fieldMade = true;
@@ -2182,7 +2182,7 @@ bool castSpell(Spell chosenSpell) {
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
-                                 addMessage("Hero: " + Hero::heroBlow[randGen->getInt(0, 4)], MessageType::HERO);
+                                 addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
                            } else {
                               state.map[step1x][step1y] = BLANK;
@@ -2192,7 +2192,7 @@ bool castSpell(Spell chosenSpell) {
                            }
                         } else {
                            if (!state.hero->dead) {
-                              addMessage("Hero: " + Hero::heroBlow[randGen->getInt(0, 4)], MessageType::HERO);
+                              addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                            }
                         }
                      } else if (state.map[step1x][step1y] == TRAP && (state.map[step2x][step2y] == BLANK || state.map[step2x][step2y] == HERO || state.map[step2x][step2y] == MONSTER)) {
@@ -2220,7 +2220,7 @@ bool castSpell(Spell chosenSpell) {
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
-                                 addMessage("Hero: " + Hero::heroBlow[randGen->getInt(0, 4)], MessageType::HERO);
+                                 addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
                            } else {
                               addMessage("You blow a trap into the hero's corpse!", MessageType::SPELL);
@@ -2307,20 +2307,20 @@ void generateMonsters(int level, int amount) {
          tempx = 0; tempy = 0;
          while (state.map[tempx][tempy] != BLANK) {
             if (a == 0) {
-               tempx = randGen->getInt(0, (MAP_WIDTH-1)/2);
-               tempy = randGen->getInt(0, (MAP_HEIGHT-1)/2);
+               tempx = Utils::randGen->getInt(0, (MAP_WIDTH-1)/2);
+               tempy = Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2);
             } else if (a == 1) {
-               tempx = randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
-               tempy = randGen->getInt(0, (MAP_HEIGHT-1)/2);
+               tempx = Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
+               tempy = Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2);
             } else if (a == 2) {
-               tempx = randGen->getInt(0, (MAP_WIDTH-1)/2);
-               tempy = randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
+               tempx = Utils::randGen->getInt(0, (MAP_WIDTH-1)/2);
+               tempy = Utils::randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
             } else {
-               tempx = randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
-               tempy = randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
+               tempx = Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
+               tempy = Utils::randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
             }
          }
-         int randomMonster = randGen->getInt(level-1, level+3);
+         int randomMonster = Utils::randGen->getInt(level-1, level+3);
          state.addSpecifiedMonster(tempx, tempy, randomMonster, false);
       }
    }
@@ -2342,10 +2342,10 @@ void displayRangedAttack(int x1, int y1, int x2, int y2) {
 void generateEndBoss() {
    int tempx = 0, tempy = 0;
    while (state.map[tempx][tempy] != BLANK || Utils::dist(tempx, tempy, state.hero->x, state.hero->y) < 30) {
-      tempx = randGen->getInt(0, MAP_WIDTH-1);
-      tempy = randGen->getInt(0, MAP_HEIGHT-1);
+      tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
+      tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
    }
-   int boss = randGen->getInt(0, 2);
+   int boss = Utils::randGen->getInt(0, 2);
    if (boss == 0) {
       state.addMonster("Master Summoner", '*', tempx, tempy, 20, 2, false, " ", 0.0f, 15, false); 
       addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);

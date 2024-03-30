@@ -30,7 +30,7 @@ class HeroPathCallback : public ITCODPathCallback {
 
 class Hero {
    public:
-   Hero(GameState& game, const MessageCallback& message) : game(game), heroPathCallback(game.map), message(message) { }
+   Hero(GameState& game, const MessageCallback& message, const RedrawCallback& redrawCallback);
 
    bool move();
    void giveItem();
@@ -62,6 +62,7 @@ class Hero {
    private:
    GameState& game;
    const MessageCallback& message;
+   const RedrawCallback& redrawCallback;
    HeroPathCallback heroPathCallback;
    TCODPath path {MAP_WIDTH, MAP_HEIGHT, &heroPathCallback, nullptr, 0.0f};
 

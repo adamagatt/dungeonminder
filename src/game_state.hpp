@@ -12,11 +12,12 @@
 struct Hero;
 struct Monster;
 
+using RedrawCallback = void(&)();
 using Map = int[MAP_WIDTH][MAP_HEIGHT];
 
 class GameState {
    public:
-   GameState(const MessageCallback& message);
+   GameState(const MessageCallback& message, const RedrawCallback& redrawCallback);
 
    Monster* findMonster(int x, int y);
    Monster* heroFindMonster();
