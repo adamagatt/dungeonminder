@@ -1,6 +1,8 @@
 #ifndef __MONSTER_HPP_
 #define __MONSTER_HPP_
 
+#include "libtcod.hpp"
+
 #include "config.hpp"
 
 #include <string>
@@ -8,11 +10,8 @@
 
 class Monster {
    public:
-   Monster() {
-      for(int i = 0; i < CONDITION_COUNT; ++i) {
-         conditionTimers[static_cast<Condition>(i)] = 0;
-      }
-   }
+   Monster();
+
    std::string name;
    char symbol;
    int x, y, health, damage, timer, wait;

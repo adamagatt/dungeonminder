@@ -10,6 +10,7 @@ add_executable(DungeonMinder
     src/dungeon_minder.cpp
     src/game_state.cpp
     src/hero.cpp
+    src/monster.cpp
     src/utils.cpp
 )
 
