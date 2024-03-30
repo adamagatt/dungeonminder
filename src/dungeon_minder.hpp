@@ -21,7 +21,7 @@ using namespace std::string_literals;
 
 /* GLOBAL VARIABLE DECLARATIONS */
 
-// Relating to the hero
+// Relating to the player
 int destx = 0, desty = 0;
 
 // Relating to messages and the message list

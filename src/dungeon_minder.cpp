@@ -69,19 +69,19 @@ gameLoop:
       state.map[0][0] = WALL;
 
       // Initialise the hero and player
-      int x=-1, y=-1;
-      while (!isEmptyPatch(x, y)) {
-         x = Utils::randGen->getInt(2, MAP_WIDTH-2);
-         y = Utils::randGen->getInt(2, MAP_HEIGHT-2);
+      int testX=-1, testY=-1;
+      while (!isEmptyPatch(testX, testY)) {
+         testX = Utils::randGen->getInt(2, MAP_WIDTH-2);
+         testY = Utils::randGen->getInt(2, MAP_HEIGHT-2);
       }
-      state.map[x][y+1] = STAIRS_UP;
-      state.mapModel->setProperties(x, y+1, true, false);
+      state.map[testX][testY+1] = STAIRS_UP;
+      state.mapModel->setProperties(testX, testY+1, true, false);
 
-      state.player.x = x;
-      state.player.y = y-1;
+      state.player.x = testX;
+      state.player.y = testY-1;
       state.map[state.player.x][state.player.y] = PLAYER;
-      state.hero->x = x;
-      state.hero->y = y;
+      state.hero->x = testX;
+      state.hero->y = testY;
       state.map[state.hero->x][state.hero->y] = HERO;
       state.hero->health = 10;
       state.hero->damage = 5;
@@ -104,7 +104,7 @@ gameLoop:
       state.hero->dest2x = -1;
       state.hero->dest2y = -1;
       state.hero->items.clear();
-      y--;
+      //y--;
       heroMana = 5*manaBlipSize;
       monsterMana = 5*manaBlipSize;
       worldMana = 5*manaBlipSize;
@@ -167,42 +167,42 @@ gameLoop:
       auto& console = *(TCODConsole::root);
       while (!TCODConsole::isWindowClosed() && !nextlevel) {
          turnTaken = false;
-         destx = x; desty = y;
+         destx = state.player.x; desty = state.player.y;
 
 
          TCOD_key_t key = getKeyPress();
 
          if (key.vk == TCODK_UP || key.vk == TCODK_KP8 || key.c == 'k') {
-            destx = x;
-            desty = y-1;
+            destx = state.player.x;
+            desty = state.player.y-1;
             turnTaken = true;
          } else if (key.vk == TCODK_DOWN || key.vk == TCODK_KP2 || key.c == 'j') {
-            destx = x;
-            desty = y+1;
+            destx = state.player.x;
+            desty = state.player.y+1;
             turnTaken = true;
          } else if (key.vk == TCODK_LEFT || key.vk == TCODK_KP4 || key.c == 'h') {
-            destx = x-1;
-            desty = y;
+            destx = state.player.x-1;
+            desty = state.player.y;
             turnTaken = true;
          } else if (key.vk == TCODK_RIGHT || key.vk == TCODK_KP6 || key.c == 'l') {
-            destx = x+1;
-            desty = y;
+            destx = state.player.x+1;
+            desty = state.player.y;
             turnTaken = true;
          } else if (key.vk == TCODK_KP7 || key.c == 'y') {
-            destx = x-1;
-            desty = y-1;
+            destx = state.player.x-1;
+            desty = state.player.y-1;
             turnTaken = true;
          } else if (key.vk == TCODK_KP9 || key.c == 'u') {
-            destx = x+1;
-            desty = y-1;
+            destx = state.player.x+1;
+            desty = state.player.y-1;
             turnTaken = true;
          } else if (key.vk == TCODK_KP3 || key.c == 'n') {
-            destx = x+1;
-            desty = y+1;
+            destx = state.player.x+1;
+            desty = state.player.y+1;
             turnTaken = true;
          } else if (key.vk == TCODK_KP1 || key.c == 'b') {
-            destx = x-1;
-            desty = y+1;
+            destx = state.player.x-1;
+            desty = state.player.y+1;
             turnTaken = true;
          } else if (key.vk == TCODK_SPACE || key.vk == TCODK_KP5) {
             turnTaken = true;
@@ -213,8 +213,8 @@ gameLoop:
             if (direction != 0) {
                int diffX = ((direction-1)%3)-1;
                int diffY = 1-((direction-1)/3);
-               state.map[x+diffX][y+diffY] = WALL;
-               state.mapModel->setProperties(x+diffX, y+diffY, false, false);
+               state.map[state.player.x+diffX][state.player.y+diffY] = WALL;
+               state.mapModel->setProperties(state.player.x+diffX, state.player.y+diffY, false, false);
                state.hero->computePath();
             }
          } else if (key.vk == TCODK_F8) {
@@ -243,10 +243,10 @@ gameLoop:
          }
          if (destx >= 0 && desty >= 0 && destx < MAP_WIDTH && desty < MAP_HEIGHT) {
             if (state.map[destx][desty] == BLANK) {
-               state.map[x][y] = BLANK;
+               state.map[state.player.x][state.player.y] = BLANK;
                state.map[destx][desty] = PLAYER;
-               x = destx;
-               y = desty;
+               state.player.x = destx;
+               state.player.y = desty;
             } else if (state.map[destx][desty] == MONSTER) {
                Monster* curMonster = state.findMonster(destx, desty);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
@@ -376,7 +376,7 @@ void drawScreen() {
    {
       WithBackgroundSet set(console);
       console.print(LEFT+MAP_WIDTH/2-7, 1, " DungeonMinder "s); 
-      console.printf(LEFT+MAP_WIDTH/2+25, 1, " level %d ", state.level); 
+      console.printf(LEFT+MAP_WIDTH/2+25, 1, " Level %d ", state.level); 
    }
    // Draw the key instructions at the bottom
 

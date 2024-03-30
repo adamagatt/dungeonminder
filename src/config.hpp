@@ -1,6 +1,12 @@
 #ifndef __CONFIG_HPP_
 #define __CONFIG_HPP_
 
+
+
+#include <array>
+#include <unordered_map>
+#include <string>
+
 constexpr int menuX = 7;
 constexpr int menuY = 7;
 constexpr int TOP = 2;
