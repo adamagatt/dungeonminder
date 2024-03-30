@@ -1,8 +1,6 @@
 #ifndef __CONFIG_HPP_
 #define __CONFIG_HPP_
 
-#include <vector>
-
 constexpr int menuX = 7;
 constexpr int menuY = 7;
 constexpr int TOP = 2;
@@ -125,6 +123,25 @@ enum class Spell {
    MINEFIELD
 };
 
+constexpr std::array<std::array<std::array<Spell, 3>, 4>, 3> spellLists {{
+   {{
+      {Spell::PACIFISM, Spell::SPEED, Spell::HEAL},
+      {Spell::PACIFISM, Spell::MEDITATION, Spell::CHARITY},
+      {Spell::SLOW, Spell::SPEED, Spell::BLINK},
+      {Spell::SHIELD, Spell::REGENERATE, Spell::HEAL}
+   }}, {{
+      {Spell::BLIND, Spell::RAGE, Spell::SLEEP},
+      {Spell::BLIND, Spell::MAIM, Spell::CRIPPLE},
+      {Spell::WEAKEN, Spell::RAGE, Spell::ALLY},
+      {Spell::HALT, Spell::FLEE, Spell::SLEEP}
+   }}, {{
+      {Spell::CLEAR, Spell::CLOUD, Spell::MTRAP},
+      {Spell::CLEAR, Spell::BLOW, Spell::MILLUSION},
+      {Spell::SCREEN, Spell::CLOUD, Spell::MFIELD},
+      {Spell::TUNNEL, Spell::MINEFIELD, Spell::MTRAP}
+   }}
+}};
+
 constexpr int MESSAGE_COUNT = 28;
 enum class MessageType {
    NORMAL,
@@ -161,9 +178,6 @@ enum Tile {
     MARKER1,
     MARKER2
 };
-
-struct Monster;
-using Map = int[MAP_WIDTH][MAP_HEIGHT];
 
 struct Position {
    int x;

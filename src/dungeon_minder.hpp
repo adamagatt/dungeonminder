@@ -38,24 +38,6 @@ int heroMana = manaBlipSize*5, monsterMana = manaBlipSize*5, worldMana = manaBli
 int heroSpec;
 int monsterSpec;
 int worldSpec;
-constexpr std::array<std::array<std::array<Spell, 3>, 4>, 3> spellLists {{
-   {{
-      {Spell::PACIFISM, Spell::SPEED, Spell::HEAL},
-      {Spell::PACIFISM, Spell::MEDITATION, Spell::CHARITY},
-      {Spell::SLOW, Spell::SPEED, Spell::BLINK},
-      {Spell::SHIELD, Spell::REGENERATE, Spell::HEAL}
-   }}, {{
-      {Spell::BLIND, Spell::RAGE, Spell::SLEEP},
-      {Spell::BLIND, Spell::MAIM, Spell::CRIPPLE},
-      {Spell::WEAKEN, Spell::RAGE, Spell::ALLY},
-      {Spell::HALT, Spell::FLEE, Spell::SLEEP}
-   }}, {{
-      {Spell::CLEAR, Spell::CLOUD, Spell::MTRAP},
-      {Spell::CLEAR, Spell::BLOW, Spell::MILLUSION},
-      {Spell::SCREEN, Spell::CLOUD, Spell::MFIELD},
-      {Spell::TUNNEL, Spell::MINEFIELD, Spell::MTRAP}
-   }}
-}};
 
 // Relating to the map 
 bool fullscreen = false;
@@ -91,7 +73,6 @@ bool castSpell(Spell);
 
 /** Monster */
 void generateMonsters(int, int);
-void addSpecifiedMonster(int, int, int, bool);
 void monsterMove(Monster&);
 bool applyMonsterCondition(Condition, bool);
 void generateEndBoss();

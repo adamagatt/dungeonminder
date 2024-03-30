@@ -7,7 +7,7 @@ find_package(SDL2 REQUIRED)
 set(CMAKE_CXX_STANDARD 20)
 
 add_executable(DungeonMinder
-    src/DungeonMinder.cpp
+    src/dungeon_minder.cpp
     src/game_state.cpp
     src/hero.cpp
     src/utils.cpp

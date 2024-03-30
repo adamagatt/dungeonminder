@@ -327,7 +327,7 @@ bool Hero::move() {
             ly = randGen->getInt(0, MAP_HEIGHT-1);
          }
          int randomMonster = randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
-         addSpecifiedMonster(lx, ly, randomMonster, true);
+         game.addSpecifiedMonster(lx, ly, randomMonster, true);
       }
    }
    // Effects of the belt of trap attraction

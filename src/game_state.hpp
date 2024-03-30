@@ -7,8 +7,12 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 struct Hero;
+struct Monster;
+
+using Map = int[MAP_WIDTH][MAP_HEIGHT];
 
 class GameState {
    public:
@@ -17,6 +21,7 @@ class GameState {
    Monster* findMonster(int x, int y);
    Monster* heroFindMonster();
    void addMonster(const std::string&, char, int, int, int, int, bool, const std::string&, float, int, bool);
+   void addSpecifiedMonster(int, int, int, bool);
    void hitMonster(int x, int y, int amount);
 
    Map map;

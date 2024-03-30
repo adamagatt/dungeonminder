@@ -1,6 +1,6 @@
 #include <SDL2/SDL.h>
 
-#include "DungeonMinder.hpp"
+#include "dungeon_minder.hpp"
 #include "utils.hpp"
 
 #include <algorithm>
@@ -376,7 +376,7 @@ void drawScreen() {
    {
       WithBackgroundSet set(console);
       console.print(LEFT+MAP_WIDTH/2-7, 1, " DungeonMinder "s); 
-      console.printf(LEFT+MAP_WIDTH/2+25, 1, " state.level %d ", state.level); 
+      console.printf(LEFT+MAP_WIDTH/2+25, 1, " level %d ", state.level); 
    }
    // Draw the key instructions at the bottom
 
@@ -725,7 +725,7 @@ void monsterMove(Monster& curMonster) {
                      lx = randGen->getInt(0, MAP_WIDTH-1);
                      ly = randGen->getInt(0, MAP_HEIGHT-1);
                   }
-                  addSpecifiedMonster(lx, ly, randGen->getInt(0, 12), true);
+                  state.addSpecifiedMonster(lx, ly, randGen->getInt(0, 12), true);
                }
             }
             curMonster.timer = curMonster.wait;
@@ -2321,52 +2321,8 @@ void generateMonsters(int level, int amount) {
             }
          }
          int randomMonster = randGen->getInt(level-1, level+3);
-         addSpecifiedMonster(tempx, tempy, randomMonster, false);
+         state.addSpecifiedMonster(tempx, tempy, randomMonster, false);
       }
-   }
-}
-
-void addSpecifiedMonster(int tempx, int tempy, int number, bool portalSpawned) {
-   switch (number){
-      case 0:
-         state.addMonster("rat", 'r', tempx, tempy, 3, 1, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 1:
-         state.addMonster("kobold", 'k', tempx, tempy, 4, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 2:
-         state.addMonster("sprite", 's', tempx, tempy, 5, 1, false, " ", 0.0f, 1, portalSpawned);
-         break;
-      case 3:
-         state.addMonster("dwarf", 'd', tempx, tempy, 9, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 4:
-         state.addMonster("skeleton archer", 'a', tempx, tempy, 5, 1, true, "shoots an arrow", 5.0f, 3, portalSpawned);
-         break;
-      case 5:
-         state.addMonster("ghost", 'g', tempx, tempy, 7, 2, false, "", 0.0f, 1, portalSpawned);
-         break;
-      case 6:
-         state.addMonster("orc", 'o', tempx, tempy, 10, 3, true, "throws an axe", 6.0f, 3, portalSpawned);
-         break;
-      case 7:
-         state.addMonster("ogre", 'O', tempx, tempy, 15, 4, false, "", 0.0f, 2, portalSpawned);
-         break;
-      case 8:
-         state.addMonster("dragon", 'D', tempx, tempy, 20, 6, true, "breathes fire", 3.0f, 4, portalSpawned);
-         break;
-      case 9:
-         state.addMonster("troll", 'T', tempx, tempy, 30, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 10:
-         state.addMonster("wraith", 'W', tempx, tempy, 5, 1, true, "gazes", 12.0f, 2, portalSpawned);
-         break;
-      case 11:
-         state.addMonster("golem", 'G', tempx, tempy, 40, 8, false, " ", 0.0f, 6, portalSpawned);
-         break;
-      case 12:
-         state.addMonster("hunter", 'H', tempx, tempy, 5, 5, false, " ", 0.0f, 1, portalSpawned);
-         break;
    }
 }
 
