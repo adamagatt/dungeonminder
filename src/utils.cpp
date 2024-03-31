@@ -1,5 +1,6 @@
 #include "utils.hpp"
 
+#include <algorithm>
 #include <cmath>
 
 int Utils::signum(int num) {
@@ -38,22 +39,29 @@ Tile& Utils::tileAt(Map& map, const Position& pos) {
 }
 
 bool Utils::isEmptyPatch(const Map& map, int x, int y) {
-   if (x <= 0 || x >= MAP_WIDTH || y <= 0 || y >= MAP_HEIGHT)
-      return false;
-
-   return map[x-1][y-1] == Tile::BLANK &&
-          map[x-1][y] == Tile::BLANK &&
-          map[x-1][y+1] == Tile::BLANK &&
-          map[x][y-1] == Tile::BLANK &&
-          map[x][y] == Tile::BLANK &&
-          map[x][y+1] == Tile::BLANK &&
-          map[x+1][y-1] == Tile::BLANK &&
-          map[x+1][y] == Tile::BLANK &&
-          map[x+1][y+1] == Tile::BLANK;
+   return isEmptyPatch(map, Position(x, y));
 }
 
 bool Utils::isEmptyPatch(const Map& map, const Position& pos) {
-   return isEmptyPatch(map, pos.x, pos.y);
+   if (pos.x <= 0 || pos.x >= MAP_WIDTH || pos.y <= 0 || pos.y >= MAP_HEIGHT)
+      return false;
+
+   return std::ranges::all_of(
+      offsets,
+      [&map, &pos](const auto& offset){return tileAt(map, pos.offset(offset)) == Tile::BLANK;} 
+   );
 }
+
+constexpr std::array<Position, 9> Utils::offsets {{
+    {-1, -1},
+    {-1,  0},
+    {-1, +1},
+    { 0, -1},
+    { 0,  0},
+    { 0, +1},
+    {+1, -1},
+    {+1,  0},
+    {+1, +1}
+}};
 
 TCODRandom* Utils::randGen = TCODRandom::getInstance();

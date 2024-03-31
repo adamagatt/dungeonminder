@@ -26,6 +26,7 @@ namespace Utils {
     float dist(int x1, int y1, int x2, int y2);
     float dist(Position pos1, Position pos2);
 
+    extern const std::array<Position, 9> offsets;
 }
 
 #endif

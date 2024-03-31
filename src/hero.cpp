@@ -1,6 +1,8 @@
 #include "hero.hpp"
 #include "utils.hpp"
 
+#include <algorithm>
+
 using namespace std::string_literals;
 
 Hero::Hero(GameState& game, const MessageCallback& message, const RedrawCallback& redrawCallback) :
@@ -53,8 +55,8 @@ void Hero::giveItem() {
             int pathX = -1, pathY = -1;
             for (int i = 0; i < path.size(); i++) {
                path.get(i, &pathX, &pathY);
-               if (game.map[pathX][pathY] == Tile::WALL) {
-                  game.map[pathX][pathY] = Tile::BLANK;
+               if (Tile& pathTile = Utils::tileAt(game.map, {pathX, pathY}); pathTile == Tile::WALL) {
+                  pathTile = Tile::BLANK;
                   game.mapModel->setProperties(pathX, pathY, true, true);
                }
 
@@ -206,7 +208,8 @@ bool Hero::move() {
             }
          }
          Position dest = pos.offset(diff);
-         if (Utils::tileAt(game.map, dest) == Tile::MONSTER) {
+         Tile& destTile = Utils::tileAt(game.map, dest);
+         if (destTile == Tile::MONSTER) {
             if (pacifismTimer > 0) {
                game.mapModel->setProperties(dest.x, dest.y, true, false);
                computePath();
@@ -244,32 +247,32 @@ bool Hero::move() {
                   }
                }
             }
-         } else if (Utils::tileAt(game.map, dest) == Tile::FIELD) {
+         } else if (destTile == Tile::FIELD) {
             message("The hero is blocked by the forcefield", MessageType::SPELL);
             computePath();
-         } else if (Utils::tileAt(game.map, dest) == Tile::WALL) {
+         } else if (destTile == Tile::WALL) {
             computePath();
-         } else if (Utils::tileAt(game.map, dest) == Tile::TRAP) {
+         } else if (destTile == Tile::TRAP) {
             message("The hero falls into the trap!", MessageType::NORMAL);
             health -= 4;
-            Utils::tileAt(game.map, dest) = Tile::BLANK;
+            destTile = Tile::BLANK;
             pos = dest;
             if (health <= 0) {
                dead = true;
                message("The hero has died!", MessageType::IMPORTANT);
                redrawCallback();
             }
-         } else if (Utils::tileAt(game.map, dest) == Tile::ILLUSION) {
-            Utils::tileAt(game.map, dest) = Tile::BLANK;
+         } else if (destTile == Tile::ILLUSION) {
+            destTile = Tile::BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
             message("The hero disrupts the illusion", MessageType::SPELL);
             message("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
-         } else if (Utils::tileAt(game.map, dest) == Tile::BLANK) {
+         } else if (destTile == Tile::BLANK) {
             pos = dest;
-         } else if (Utils::tileAt(game.map, dest) == Tile::PLAYER) {
+         } else if (destTile == Tile::PLAYER) {
             std::swap(game.player, pos);
             message("The hero passes through you", MessageType::NORMAL);
-            game.map[game.player.x][game.player.y] = Tile::PLAYER;
+            Utils::tileAt(game.map, game.player) = Tile::PLAYER;
          }
          Utils::tileAt(game.map, pos) = Tile::HERO;
          if ((items.contains(Item::slowBoots) && Utils::randGen->getInt(1, 2) == 1) || slow) {
@@ -400,22 +403,19 @@ bool Hero::inSpellRadius() const {
 }
 
 bool Hero::isAdjacent(int x, int y) const {
-   if (x <= 0 || x >= (MAP_WIDTH-1) || y <= 0 || y >= (MAP_HEIGHT-1))
-      return false;
-
-   return game.map[x-1][y-1] == Tile::HERO ||
-          game.map[x-1][y] == Tile::HERO ||
-          game.map[x-1][y+1] == Tile::HERO ||
-          game.map[x][y-1] == Tile::HERO ||
-          game.map[x][y] == Tile::HERO ||
-          game.map[x][y+1] == Tile::HERO ||
-          game.map[x+1][y-1] == Tile::HERO ||
-          game.map[x+1][y] == Tile::HERO ||
-          game.map[x+1][y+1] == Tile::HERO;
+   return isAdjacent(Position(x, y));
 }
 
 bool Hero::isAdjacent(const Position& pos) const {
-   return isAdjacent(pos.x, pos.y);
+   if (!pos.withinMap())
+      return false;
+
+   return std::ranges::any_of(
+      Utils::offsets,
+      [this, &pos](auto offset){
+         return Utils::tileAt(game.map, pos.offset(offset)) == Tile::HERO;
+      }
+   );
 }
 
 // When the hero starts a new level
