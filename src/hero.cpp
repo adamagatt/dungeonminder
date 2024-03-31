@@ -152,7 +152,7 @@ bool Hero::move() {
             if (target != nullptr) {
                message("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                pathstep = 0;
-               path.compute(pos.x, pos.y, target->x, target->y); 
+               path.compute(pos.x, pos.y, target->pos.x, target->pos.y); 
             } else {
                if (pos == dest1) {
                   Utils::tileAt(game.map, dest1.offset(0, -1)) = Tile::CHEST_OPEN;
@@ -184,7 +184,7 @@ bool Hero::move() {
          } else {
             // If the hero had an existing target, move to attack
             int ptx = 0, pty = 0;
-            bool reachable = path.compute(pos.x, pos.y, target->x, target->y); 
+            bool reachable = path.compute(pos.x, pos.y, target->pos.x, target->pos.y); 
             if (reachable) {
                path.get(0, &ptx, &pty);
                if (pos.x > ptx) diff.x = -1;
@@ -384,7 +384,7 @@ bool Hero::move() {
                      testTile = Tile::BLANK;
                      Monster* target = game.findMonster(dir.offset(i, j));
                      message("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
-                     game.hitMonster(target->x, target->y, 4);
+                     game.hitMonster(target->pos, 4);
                   }
                }
             }
@@ -400,11 +400,22 @@ bool Hero::inSpellRadius() const {
 }
 
 bool Hero::isAdjacent(int x, int y) const {
-   bool result = false;
-   if (x > 0 && x < MAP_WIDTH && y > 0 && y < MAP_HEIGHT) {
-      result = game.map[x-1][y-1] == Tile::HERO || game.map[x-1][y] == Tile::HERO || game.map[x-1][y+1] == Tile::HERO || game.map[x][y-1] == Tile::HERO || game.map[x][y] == Tile::HERO || game.map[x][y+1] == Tile::HERO || game.map[x+1][y-1] == Tile::HERO || game.map[x+1][y] == Tile::HERO || game.map[x+1][y+1] == Tile::HERO;
-   }
-   return result;
+   if (x <= 0 || x >= (MAP_WIDTH-1) || y <= 0 || y >= (MAP_HEIGHT-1))
+      return false;
+
+   return game.map[x-1][y-1] == Tile::HERO ||
+          game.map[x-1][y] == Tile::HERO ||
+          game.map[x-1][y+1] == Tile::HERO ||
+          game.map[x][y-1] == Tile::HERO ||
+          game.map[x][y] == Tile::HERO ||
+          game.map[x][y+1] == Tile::HERO ||
+          game.map[x+1][y-1] == Tile::HERO ||
+          game.map[x+1][y] == Tile::HERO ||
+          game.map[x+1][y+1] == Tile::HERO;
+}
+
+bool Hero::isAdjacent(const Position& pos) const {
+   return isAdjacent(pos.x, pos.y);
 }
 
 // When the hero starts a new level

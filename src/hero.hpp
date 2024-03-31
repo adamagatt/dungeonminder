@@ -19,16 +19,19 @@ class HeroPathCallback : public ITCODPathCallback {
       const Tile& dest = Utils::tileAt(map, {xTo, yTo});
 
       float cost = 0.0f;
-      if (dest == Tile::WALL) {
-         cost = MAP_WIDTH * MAP_HEIGHT + 2;
-      } else if (
-         dest != Tile::STAIRS &&
-         dest != Tile::STAIRS_UP &&
-         dest != Tile::CHEST &&
-         dest != Tile::CHEST_OPEN &&
-         dest != Tile::FIELD
-      ) {
-         cost = abs(xFrom-xTo)+abs(yFrom-yTo);
+      switch(dest) {
+         case Tile::STAIRS:
+         case Tile::STAIRS_UP:
+         case Tile::CHEST:
+         case Tile::CHEST_OPEN:
+         case Tile::FIELD:
+            break;
+         case Tile::WALL:
+            cost = MAP_WIDTH * MAP_HEIGHT + 2;
+            break;
+         default:
+            cost = abs(xFrom-xTo)+abs(yFrom-yTo);
+            break;
       }
       return cost;
    }
@@ -47,6 +50,7 @@ class Hero {
    bool gainHealth(int);
    bool checkWin() const;
    bool isAdjacent(int, int) const;
+   bool isAdjacent(const Position& pos) const;
    bool inSpellRadius() const;
 
    Position pos;

@@ -12,11 +12,10 @@ Monster* GameState::findMonster(const Position& p) {
    return findMonster(p.x, p.y);
 }
 
-
 Monster* GameState::findMonster(int x, int y) {
    auto found = std::ranges::find_if(
       monsterList,
-      [x, y](const auto& monster) {return monster.x == x && monster.y == y;}
+      [x, y](const auto& monster) {return monster.pos.x == x && monster.pos.y == y;}
    );
 
    return (found != monsterList.end())
@@ -36,40 +35,43 @@ Monster* GameState::heroFindMonster() {
 }
 
 void GameState::hitMonster(int x, int y, int amount) {
-   if (Monster* curMonster = findMonster(x, y); curMonster != nullptr) {
-      curMonster->health -= amount;
-      if (curMonster->health <= 0) {
-         if (curMonster->symbol == '*' || curMonster->symbol=='M' || curMonster->symbol=='@') {
-            bossDead = true;
-         }
-         message("The " + curMonster->name + " dies!", MessageType::NORMAL);
-         if (hero->target == curMonster) {
-            hero->target = nullptr;
-            hero->computePath();
-         }
-         map[curMonster->x][curMonster->y] = Tile::BLANK;
-         bool found = false;
+   Monster* curMonster = findMonster(x, y);
+   if (curMonster == nullptr)
+      return;
 
-         for (auto it = monsterList.begin(); it != monsterList.end(); ++it) {
-            if (&(*it) == curMonster) {
-               curMonster == nullptr;
-               monsterList.erase(it);
-               break;
-            }
-         }
-      } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
-         curMonster->conditionTimers[Condition::HALTED] = 0;
-         message("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
+   curMonster->health -= amount;
+   if (curMonster->health <= 0) {
+      if (curMonster->symbol == '*' || curMonster->symbol=='M' || curMonster->symbol=='@') {
+         bossDead = true;
       }
+      message("The " + curMonster->name + " dies!", MessageType::NORMAL);
+      if (hero->target == curMonster) {
+         hero->target = nullptr;
+         hero->computePath();
+      }
+      Utils::tileAt(map, curMonster->pos) = Tile::BLANK;
+      bool found = false;
+
+      monsterList.erase(
+         std::remove(monsterList.begin(), monsterList.end(), *curMonster),
+         monsterList.end()
+      );
+
+   } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
+      curMonster->conditionTimers[Condition::HALTED] = 0;
+      message("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
    }
+}
+
+void GameState::hitMonster(const Position& pos, int amount) {
+   hitMonster(pos.x, pos.y, amount);
 }
 
 void GameState::addMonster(const std::string& name, char symbol, int x, int y, int health, int damage, bool ranged, const std::string& rangedName, float range, int wait, bool portalSpawned) {
    auto& curMonster = monsterList.emplace_back();
    curMonster.name = name;
    curMonster.symbol = symbol;
-   curMonster.x = x;
-   curMonster.y = y;
+   curMonster.pos = {x, y};
    curMonster.health = health;
    curMonster.maxhealth = health;
    curMonster.range = range;

@@ -4,6 +4,7 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "position.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -11,10 +12,12 @@
 class Monster {
    public:
    Monster();
+   bool operator==(const Monster& other) const;
 
    std::string name;
    char symbol;
-   int x, y, health, damage, timer, wait;
+   Position pos;
+   int health, damage, timer, wait;
    int portalTimer;
    bool angry;
    int maxhealth;

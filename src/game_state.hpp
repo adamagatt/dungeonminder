@@ -25,6 +25,7 @@ class GameState {
    void addMonster(const std::string&, char, int, int, int, int, bool, const std::string&, float, int, bool);
    void addSpecifiedMonster(int, int, int, bool);
    void hitMonster(int x, int y, int amount);
+   void hitMonster(const Position& pos, int amount);
 
    Map map;
    TCODMap *mapModel = new TCODMap(MAP_WIDTH,MAP_HEIGHT);

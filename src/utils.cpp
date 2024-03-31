@@ -2,6 +2,12 @@
 
 #include <cmath>
 
+int Utils::signum(int num) {
+    return (num > 0) ? 1 :
+           (num < 0) ? -1 :
+           0;
+}
+
 Position Utils::randomMapPosition(int border) {
     return {
         randGen->getInt(border, MAP_WIDTH-1-border),

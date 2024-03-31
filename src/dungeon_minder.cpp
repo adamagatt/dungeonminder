@@ -457,7 +457,7 @@ void drawScreen() {
       // If the monster has spawned
       if (monster.portalTimer == 0) {
          console.setDefaultForeground(TCODColor(monster.health*100/monster.maxhealth+155, 155-(155*monster.health/monster.maxhealth), 155-(155*monster.health/monster.maxhealth)));
-         console.putChar(monster.x+LEFT, monster.y+TOP, monster.symbol, TCOD_BKGND_NONE);
+         console.putChar(monster.pos.x+LEFT, monster.pos.y+TOP, monster.symbol, TCOD_BKGND_NONE);
       }
    }
 
@@ -527,8 +527,8 @@ void monsterMove(Monster& curMonster) {
       curMonster.portalTimer--;
       // Once the monster has spawned
       if (curMonster.portalTimer == 0) {
-         state.mapModel->setProperties(curMonster.x, curMonster.y, true, true);
-         state.map[curMonster.x][curMonster.y] = Tile::MONSTER;
+         state.mapModel->setProperties(curMonster.pos.x, curMonster.pos.y, true, true);
+         Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
       }
    } else {
       Hero& hero = *(state.hero);
@@ -537,69 +537,57 @@ void monsterMove(Monster& curMonster) {
          if (curMonster.timer == 0) {
             if (curMonster.symbol != '*') {
                bool rangedAttack = false;
-               state.map[curMonster.x][curMonster.y] = Tile::BLANK;
+               Utils::tileAt(state.map, curMonster.pos) = Tile::BLANK;
                int diffx = 0, diffy = 0;
 
                if (curMonster.conditionTimers[Condition::HALTED] > 0) {
-                  if (Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y) == 1.0) {
-                     if (hero.pos.x > curMonster.x) diffx = 1;
-                     if (hero.pos.x < curMonster.x) diffx = -1;
-                     if (hero.pos.y > curMonster.y) diffy = 1;
-                     if (hero.pos.y < curMonster.y) diffy = -1;
+                  if (Utils::dist(hero.pos, curMonster.pos) == 1.0) {
+                     diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
+                     diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                   }
-               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
-                  if (hero.pos.x > curMonster.x) diffx = -1;
-                  if (hero.pos.x < curMonster.x) diffx = 1;
-                  if (hero.pos.y > curMonster.y) diffy = -1;
-                  if (hero.pos.y < curMonster.y) diffy = 1;
+               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y)) {
+                     diffx = Utils::signum(curMonster.pos.x - hero.pos.x);
+                     diffy = Utils::signum(curMonster.pos.y - hero.pos.y);
                } else if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
-                  float heroDist = Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y);
-                  float nearestMonsterDist = 500.0;
+                  float heroDist = Utils::dist(hero.pos, curMonster.pos);
+                  float nearestMonsterDist = MAP_WIDTH + MAP_HEIGHT + 2;
                   Monster* nearestMonster;
-                  state.mapModel->computeFov(curMonster.x, curMonster.y);
-                  for (Monster& monster : state.monsterList) {
-                     int monX = monster.x;
-                     int monY = monster.y;
-                     if (&monster != &curMonster && state.mapModel->isInFov(monX, monY)) {
-                        float tempdist = Utils::dist(curMonster.x, curMonster.y, monX, monY);
+                  state.mapModel->computeFov(curMonster.pos.x, curMonster.pos.y);
+                  for (Monster& otherMon : state.monsterList) {
+                     if ((&otherMon != &curMonster) && state.mapModel->isInFov(otherMon.pos.x, otherMon.pos.y)) {
+                        float tempdist = Utils::dist(curMonster.pos, otherMon.pos);
                         if (tempdist < nearestMonsterDist) {
                            nearestMonsterDist = tempdist;
-                           nearestMonster = &monster;
+                           nearestMonster = &otherMon;
                         }
                      }
                   }
                   state.mapModel->computeFov(hero.pos.x, hero.pos.y);
                   if (heroDist < nearestMonsterDist && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (heroDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
-                        if (hero.pos.x > curMonster.x) diffx = 1;
-                        if (hero.pos.x < curMonster.x) diffx = -1;
-                        if (hero.pos.y > curMonster.y) diffy = 1;
-                        if (hero.pos.y < curMonster.y) diffy = -1;
+                        diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
+                        diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                      } else {
                         diffx = Utils::randGen->getInt(-1, 1);
                         diffy = Utils::randGen->getInt(-1, 1);
                      }
                   } else {
                      if (nearestMonsterDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
-                        if (nearestMonster->x > curMonster.x) diffx = 1;
-                        if (nearestMonster->x < curMonster.x) diffx = -1;
-                        if (nearestMonster->y > curMonster.y) diffy = 1;
-                        if (nearestMonster->y < curMonster.y) diffy = -1;
+                        diffx = Utils::signum(nearestMonster->pos.x - curMonster.pos.x);
+                        diffy = Utils::signum(nearestMonster->pos.y - curMonster.pos.y);
                      } else {
                         diffx = Utils::randGen->getInt(-1, 1);
                         diffy = Utils::randGen->getInt(-1, 1);
                      }
                   }
-               } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
-                  if (curMonster.ranged /*&& !curMonster.maimed*/ && !hero.isAdjacent(curMonster.x, curMonster.y) && Utils::dist(curMonster.x, curMonster.y, hero.pos.x, hero.pos.y) <= curMonster.range && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
+               } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
+                  if (curMonster.ranged && !hero.isAdjacent(curMonster.pos) && Utils::dist(curMonster.pos, hero.pos) <= curMonster.range && state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y)) {
                      rangedAttack = true;
                   }
-                  if (hero.pos.x > curMonster.x) diffx = 1;
-                  if (hero.pos.x < curMonster.x) diffx = -1;
-                  if (hero.pos.y > curMonster.y) diffy = 1;
-                  if (hero.pos.y < curMonster.y) diffy = -1;
+                  diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
+                  diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                } else {
-                  if (state.mapModel->isInFov(curMonster.x, curMonster.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
+                  if (state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
                      if (curMonster.symbol != '@' || curMonster.health != curMonster.maxhealth) {
                         curMonster.angry = true;
                      }
@@ -615,13 +603,14 @@ void monsterMove(Monster& curMonster) {
                   }
                }
                if (rangedAttack) {
-                  displayRangedAttack(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y);
-                  int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
+                  displayRangedAttack(hero.pos, curMonster.pos);
+                  int damage = curMonster.damage - static_cast<int>(ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED)));
                   if (hero.shieldTimer == 0) {
                      if (damage < 0) damage = 0;
                      hero.health -= damage;
-                     sprintf(charBuffer, "%d", damage);
-                     addMessage("The " + curMonster.name + " " + curMonster.rangedName + " at the hero for " + charBuffer + " damage", MessageType::NORMAL);
+                     char buffer[20];
+                     sprintf(buffer, "%d", damage);
+                     addMessage("The " + curMonster.name + " " + curMonster.rangedName + " at the hero for " + buffer + " damage", MessageType::NORMAL);
                      if (hero.health <= 0) {
                         hero.dead = true;
                         addMessage("The hero has died!", MessageType::IMPORTANT);
@@ -642,22 +631,24 @@ void monsterMove(Monster& curMonster) {
                   }
                   if (curMonster.maimed) {
                      addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                     state.hitMonster(curMonster.x, curMonster.y, damage);
+                     state.hitMonster(curMonster.pos, damage);
                   }
                } else {
-                  if (curMonster.x+diffx == hero.pos.x && curMonster.y+diffy == hero.pos.y && curMonster.conditionTimers[Condition::ALLIED] == 0) {
+                  Position diffPos = curMonster.pos.offset(diffx, diffy);
+                  Tile& diffTile = Utils::tileAt(state.map, diffPos);
+                  if (diffPos == hero.pos && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (hero.dead) {
                         hero.health -= curMonster.damage;
-                        sprintf(charBuffer, "%d", curMonster.damage);
                         if (curMonster.symbol != '@') {
                            addMessage("The " + curMonster.name + " savages the hero's corpse", MessageType::NORMAL);
                         }
                      } else {
-                        int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
+                        int damage = curMonster.damage - static_cast<int>(ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED)));
                         if (damage < 0) damage = 0;
                         hero.health -= damage;
-                        sprintf(charBuffer, "%d", damage);
-                        addMessage("The " + curMonster.name + " hits the hero for " + charBuffer + " damage", MessageType::NORMAL);
+                        char buffer[20];
+                        sprintf(buffer, "%d", damage);
+                        addMessage("The " + curMonster.name + " hits the hero for " + buffer + " damage", MessageType::NORMAL);
                         if (hero.health <= 0) {
                            hero.dead = true;
                            addMessage("The hero has died!", MessageType::IMPORTANT);
@@ -666,53 +657,49 @@ void monsterMove(Monster& curMonster) {
                            hero.meditationTimer = 0;
                            addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
                         } else if (&curMonster != hero.target && hero.target != nullptr) {
-                           if (Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y) < Utils::dist(hero.pos.x, hero.pos.y, hero.target->x, hero.target->y)) {
+                           if (Utils::dist(hero.pos, curMonster.pos) < Utils::dist(hero.pos, hero.target->pos)) {
                               hero.target = &curMonster;
                            }
                         }
                         if (curMonster.maimed) {
                            addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                           state.hitMonster(curMonster.x, curMonster.y, damage);
+                           state.hitMonster(curMonster.pos, damage);
                         }
                      }
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
-                     Monster* otherMonster = state.findMonster(curMonster.x+diffx, curMonster.y+diffy);
+                  } else if (diffTile == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
+                     Monster* otherMonster = state.findMonster(diffPos);
                      if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
-                        sprintf(charBuffer, "%d", curMonster.damage);
-                        addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +charBuffer + " damage", MessageType::NORMAL);
-                        state.hitMonster(curMonster.x+diffx, curMonster.y+diffy, curMonster.damage);
+                        char buffer[20];
+                        sprintf(buffer, "%d", curMonster.damage);
+                        addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +buffer + " damage", MessageType::NORMAL);
+                        state.hitMonster(diffPos, curMonster.damage);
                      } else {
                         addMessage("The " + curMonster.name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
                      }
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::PLAYER) {
-                     std::swap(state.player.x, curMonster.x);
-                     std::swap(state.player.y, curMonster.y);
+                  } else if (diffTile == Tile::PLAYER) {
+                     std::swap(state.player, curMonster.pos);
                      addMessage("The " + curMonster.name + " passes through you", MessageType::NORMAL);
-                     state.map[state.player.x][state.player.y] = Tile::PLAYER;
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::TRAP) {
+                     Utils::tileAt(state.map, state.player) = Tile::PLAYER;
+                  } else if (diffTile == Tile::TRAP) {
                      addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
-                     state.map[curMonster.x+diffx][curMonster.y+diffy] = Tile::BLANK;
-                     curMonster.x+=diffx;
-                     curMonster.y+=diffy;
-                     state.hitMonster(curMonster.x, curMonster.y, 4);
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::ILLUSION) {
-                     state.map[curMonster.x+diffx][curMonster.y+diffy] = Tile::BLANK;
-                     state.illusion.x = -1; state.illusion.y = -1;
+                     diffTile = Tile::BLANK;
+                     curMonster.pos = diffPos;
+                     state.hitMonster(curMonster.pos, 4);
+                  } else if (diffTile == Tile::ILLUSION) {
+                     diffTile = Tile::BLANK;
+                     state.illusion = {1, -1};
                      addMessage("The "+curMonster.name+" disrupts the illusion", MessageType::SPELL);
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::BLANK) {
-                     curMonster.x+=diffx;
-                     curMonster.y+=diffy;
+                  } else if (diffTile == Tile::BLANK) {
+                     curMonster.pos = diffPos;
                   }
                }
-               state.map[curMonster.x][curMonster.y] = Tile::MONSTER;
+               Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
             } else {
                if (state.monsterList.size() < MAX_MONSTERS) {
-                  int lx = 0, ly = 0;
-                  while (state.map[lx][ly] != Tile::BLANK) {
-                     lx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-                     ly = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-                  }
-                  state.addSpecifiedMonster(lx, ly, Utils::randGen->getInt(0, 12), true);
+                  Position l = Utils::randomMapPosWithCondition(
+                     [](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK;}
+                  );
+                  state.addSpecifiedMonster(l.x, l.y, Utils::randGen->getInt(0, 12), true);
                }
             }
             curMonster.timer = curMonster.wait;
@@ -2107,10 +2094,10 @@ bool castSpell(Spell chosenSpell) {
                         target->timer = target->wait;
                         state.map[step1.x][step1.y] = Tile::BLANK;
                         state.map[temp.x][temp.y] = Tile::MONSTER;
-                        target->x = temp.x; target->y = temp.y;
+                        target->pos = temp;
                         if (trapSprung) {
                            addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
-                           state.hitMonster(target->x, target->y, 4);
+                           state.hitMonster(target->pos, 4);
                         }
                      } else if (state.map[step1.x][step1.y] == Tile::HERO) {
                         if (state.map[step2.x][step2.y] == Tile::BLANK) {
@@ -2185,7 +2172,7 @@ bool castSpell(Spell chosenSpell) {
                         } else if (state.map[temp.x][temp.y] == Tile::MONSTER) {
                            Monster* target = state.findMonster(temp);
                            addMessage("You blow a trap into the " + target->name+ "!", MessageType::SPELL);
-                           state.hitMonster(target->x, target->y, 4);
+                           state.hitMonster(target->pos, 4);
                         }
                      }
                   }
@@ -2294,6 +2281,10 @@ void displayRangedAttack(int x1, int y1, int x2, int y2) {
    } while (! TCODLine::step(&xStep, &yStep) );
    console.flush();
    TCODSystem::sleepMilli(200);
+}
+
+void displayRangedAttack(const Position& p1, const Position& p2) {
+   displayRangedAttack(p1.x, p1.y, p2.x, p2.y);
 }
 
 void generateEndBoss() {

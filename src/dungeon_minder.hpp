@@ -25,8 +25,6 @@ using namespace std::string_literals;
 std::array<std::string, MESSAGE_COUNT> messageList;
 std::array<MessageType, MESSAGE_COUNT> messageType;
 
-char charBuffer[20];
-
 // Relating to spells
 constexpr int manaBlipSize = 10;
 int heroMana = manaBlipSize*5, monsterMana = manaBlipSize*5, worldMana = manaBlipSize*5;
@@ -58,6 +56,7 @@ void addMessage(const std::string&, MessageType);
 void displayMessageHistory();
 void displayStatLine(int);
 void displayRangedAttack(int, int, int, int);
+void displayRangedAttack(const Position& p1, const Position& p2);
 void showVictoryScreen();
 
 /** Initialisation */
