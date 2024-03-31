@@ -54,7 +54,7 @@ gameLoop:
       // Creates the map
       for (int i = 0; i < MAP_WIDTH; i++) {
          for (int j = 0; j < MAP_HEIGHT; j++) {
-            state.map[i][j] = Tile::WALL;
+            Utils::tileAt(state.map, {i, j}) = Tile::WALL;
             cloud[i][j] = 0;
             field[i][j] = 0;
          }
@@ -67,7 +67,7 @@ gameLoop:
       }
       state.mapModel->clear();
       drawBSP(&mapBSP);
-      state.map[0][0] = Tile::WALL;
+      Utils::tileAt(state.map, {0, 0}) = Tile::WALL;
 
       // Initialise the hero and player
       Position heroPos = Utils::randomMapPosWithCondition(
@@ -198,7 +198,7 @@ gameLoop:
             int direction = getDirection();
             if (direction != 0) {
                Position target = state.player.directionOffset(direction);
-               state.map[target.x][target.y] = Tile::WALL;
+               Utils::tileAt(state.map, target) = Tile::WALL;
                state.mapModel->setProperties(target.x, target.y, false, false);
                hero.computePath();
             }
@@ -227,32 +227,33 @@ gameLoop:
             }
          }
          if (dest.withinMap()) {
-            if (state.map[dest.x][dest.y] == Tile::BLANK) {
-               state.map[state.player.x][state.player.y] = Tile::BLANK;
-               state.map[dest.x][dest.y] = Tile::PLAYER;
+            Tile& destTile = Utils::tileAt(state.map, dest);
+            if (destTile == Tile::BLANK) {
+               Utils::tileAt(state.map, state.player) = Tile::BLANK;
+               destTile = Tile::PLAYER;
                state.player = dest;
-            } else if (state.map[dest.x][dest.y] == Tile::MONSTER) {
+            } else if (destTile == Tile::MONSTER) {
                Monster* curMonster = state.findMonster(dest);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == Tile::HERO) {
+            } else if (destTile == Tile::HERO) {
                if (hero.dead) {
                   addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
                } else {
                   addMessage("You are blocked by the hero", MessageType::NORMAL);
                }
-            } else if (state.map[dest.x][dest.y] == Tile::TRAP) {
+            } else if (destTile == Tile::TRAP) {
                addMessage("You shy away from the trap", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == Tile::FIELD) {
+            } else if (destTile == Tile::FIELD) {
                addMessage("You are blocked by the forcefield", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == Tile::ILLUSION) {
-               state.map[dest.x][dest.y] = Tile::BLANK;
+            } else if (destTile == Tile::ILLUSION) {
+               destTile = Tile::BLANK;
                state.illusion.x = -1; state.illusion.y = -1;
                addMessage("You disrupt the illusion", MessageType::SPELL);
-            } else if (state.map[dest.x][dest.y] == Tile::PORTAL) {
+            } else if (destTile == Tile::PORTAL) {
                addMessage("You are blocked by a swirling portal", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == Tile::CHEST || state.map[dest.x][dest.y] == Tile::CHEST_OPEN) {
+            } else if (destTile == Tile::CHEST || destTile == Tile::CHEST_OPEN) {
                addMessage("You are blocked by the chest", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == Tile::STAIRS || state.map[dest.x][dest.y] == Tile::STAIRS_UP) {
+            } else if (destTile == Tile::STAIRS || destTile == Tile::STAIRS_UP) {
                addMessage("You are blocked by the stairs", MessageType::NORMAL);
             }
          }
@@ -301,7 +302,7 @@ gameLoop:
                      field[i][j]--;
                      if (field[i][j] == 0) {
                         state.mapModel->setProperties(i, j, true, true);
-                        state.map[i][j] = Tile::BLANK;
+                        Utils::tileAt(state.map, {i, j}) = Tile::BLANK;
                      }
                   }
                }
@@ -369,6 +370,8 @@ void drawScreen() {
    // Draw the walls
    for (int i = 0; i < MAP_WIDTH; i++) {
       for (int j = 0; j < MAP_HEIGHT; j++) {
+         Tile& curTile = Utils::tileAt(state.map, {i, j});
+
          int floorColour = (int)(floorNoise[i][j]*40);
          console.setDefaultBackground(TCODColor(floorColour, floorColour, floorColour));
          if (!hero.dead && state.mapModel->isInFov(i, j)) {
@@ -377,49 +380,61 @@ void drawScreen() {
          }
          if (cloud[i][j] > 0) {
             console.setDefaultBackground(TCODColor(100, 150, 100));
-            if (state.map[i][j] == Tile::BLANK) {
+            if (curTile == Tile::BLANK) {
                console.setDefaultForeground(TCODColor(80, 100, 80));
                console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_SET);
             } else {
                console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
             }
          }
-         if (state.map[i][j] == Tile::WALL) {
-            console.setDefaultForeground(TCODColor(160-(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30)));
-            console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::STAIRS_UP) {
-            console.setDefaultForeground(TCODColor(200, 200, 200));
-            console.putChar(i+LEFT, j+TOP, '<', TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::CHEST) {
-            console.setDefaultForeground(TCODColor::lightBlue);
-            console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::CHEST_OPEN) {
-            console.setDefaultForeground(TCODColor(128, 64, 0));
-            console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::TRAP) {
-            console.setDefaultForeground(TCODColor(100,150,100));
-            console.putChar(i+LEFT, j+TOP, 207, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::FIELD) {
-            console.setDefaultForeground(TCODColor(50, 250, 200));
-            console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_NONE);
-         } else if (state.map[i][j] == Tile::ILLUSION) {
-            console.setDefaultForeground(TCODColor(50,250,200));
-            console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::PORTAL) {
-            console.setDefaultForeground(TCODColor::red);
-            console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == Tile::MARKER1) {
-            console.setDefaultForeground(TCODColor::red);
-            console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-            console.setDefaultForeground(TCODColor::grey);
-         } else if (state.map[i][j] == Tile::MARKER2) {
-            console.setDefaultForeground(TCODColor::lightBlue);
-            console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-            console.setDefaultForeground(TCODColor::grey);
-         } else {
-            if (cloud[i][j] == 0) {
-               console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
-            }
+         switch(curTile) {
+            case Tile::WALL:
+               console.setDefaultForeground(TCODColor(160-(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30)));
+               console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
+               break;
+            case Tile::STAIRS_UP:
+               console.setDefaultForeground(TCODColor(200, 200, 200));
+               console.putChar(i+LEFT, j+TOP, '<', TCOD_BKGND_SET);
+               break;
+            case Tile::CHEST:
+               console.setDefaultForeground(TCODColor::lightBlue);
+               console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
+               break;
+            case Tile::CHEST_OPEN:
+               console.setDefaultForeground(TCODColor(128, 64, 0));
+               console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
+               break;
+            case Tile::TRAP:
+               console.setDefaultForeground(TCODColor(100,150,100));
+               console.putChar(i+LEFT, j+TOP, 207, TCOD_BKGND_SET);
+               break;
+            case Tile::FIELD:
+               console.setDefaultForeground(TCODColor(50, 250, 200));
+               console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_NONE);
+               break;
+            case Tile::ILLUSION:
+               console.setDefaultForeground(TCODColor(50,250,200));
+               console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
+               break;
+            case Tile::PORTAL:
+               console.setDefaultForeground(TCODColor::red);
+               console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
+               break;
+            case Tile::MARKER1:
+               console.setDefaultForeground(TCODColor::red);
+               console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
+               console.setDefaultForeground(TCODColor::grey);
+               break;
+            case Tile::MARKER2:
+               console.setDefaultForeground(TCODColor::lightBlue);
+               console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
+               console.setDefaultForeground(TCODColor::grey);
+               break;
+            default:
+               if (cloud[i][j] == 0) {
+                  console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
+               }
+               break;
          }
       }
    }
@@ -744,17 +759,17 @@ void drawBSP(TCODBsp* curBSP) {
          int y2 = curBSP->y+curBSP->h-1;
          for (int i = x1+2; i <= x2-2; i++) {
             for (int j = y1+Utils::randGen->getInt(1, 2); j <= y2-Utils::randGen->getInt(1, 2); j++) {
-               state.map[i][j] = Tile::BLANK;
+               Utils::tileAt(state.map, {i, j}) = Tile::BLANK;
                state.mapModel->setProperties(i, j, true, true);
             }
          }
          for (int j = y1+2; j <= y2-2; j++) {
             if (Utils::randGen->getInt(1, 2) == 1) {
-               state.map[x1+1][j] = Tile::BLANK;
+               Utils::tileAt(state.map, {x1+1, j}) = Tile::BLANK;
                state.mapModel->setProperties(x1+1, j, true, true);
             }
             if (Utils::randGen->getInt(1, 2) == 1) {
-               state.map[x2-1][j] = Tile::BLANK;
+               Utils::tileAt(state.map, {x2-1, j}) = Tile::BLANK;
                state.mapModel->setProperties(x2-1, j, true, true);
             }
          }
@@ -771,7 +786,7 @@ void drawBSP(TCODBsp* curBSP) {
                x2 = temp;
             }
             for (int i = x1; i <= x2; i++) {
-               state.map[i][y] = Tile::BLANK;
+               Utils::tileAt(state.map, {i, y}) = Tile::BLANK;
                state.mapModel->setProperties(i, y, true, true);
             }
          } else {
@@ -784,7 +799,7 @@ void drawBSP(TCODBsp* curBSP) {
                y2 = temp;
             }
             for (int j = y1; j <= y2; j++) {
-               state.map[x][j] = Tile::BLANK;
+               Utils::tileAt(state.map, {x, j}) = Tile::BLANK;
                state.mapModel->setProperties(x, j, true, true);
             }
          }
@@ -1707,8 +1722,8 @@ bool castSpell(Spell chosenSpell) {
          for (int i = state.player.x-1; i <= state.player.x+1; i++) {
             for (int j = state.player.y-1; j <= state.player.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
-                  if (state.map[i][j] == Tile::WALL || state.map[i][j] == Tile::TRAP) {
-                     state.map[i][j] = Tile::BLANK;
+                  if (Tile& curTile = Utils::tileAt(state.map, {i, j}); curTile == Tile::WALL || curTile == Tile::TRAP) {
+                     curTile = Tile::BLANK;
                      state.mapModel->setProperties(i, j, true, true);
                      if (hero.target == nullptr) {
                         hero.computePath();
@@ -1725,7 +1740,7 @@ bool castSpell(Spell chosenSpell) {
             for (int j = state.player.y-2; j <= state.player.y+2; j++) {
                int cloudDist = abs(state.player.x-i)+abs(state.player.y-j);
                if ((cloudDist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
-                  if (state.map[i][j] != Tile::WALL) {
+                  if (Utils::tileAt(state.map, {i, j}) != Tile::WALL) {
                      int newCloudLevel = CLOUD_TIME*(8-cloudDist)/8;
                      if (newCloudLevel > cloud[i][j]) {
                         cloud[i][j] = newCloudLevel;
@@ -1743,9 +1758,9 @@ bool castSpell(Spell chosenSpell) {
          direction = getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (target.withinMap() && state.map[target.x][target.y] == Tile::BLANK) {
+            if (target.withinMap() && Utils::tileAt(state.map,target) == Tile::BLANK) {
                addMessage("You create a trap in the ground", MessageType::SPELL);
-               state.map[target.x][target.y] = Tile::TRAP;
+               Utils::tileAt(state.map,target) = Tile::TRAP;
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -1883,12 +1898,11 @@ bool castSpell(Spell chosenSpell) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
             for (int i = 1; i <= 3; i++) {
-               int stepX = diffX*i+state.player.x;
-               int stepY = diffY*i+state.player.y;
-               if (stepX>=0 && stepY>=0 && stepX<MAP_WIDTH && stepY <MAP_HEIGHT) {
-                  if (state.map[stepX][stepY] == Tile::WALL || state.map[stepX][stepY] == Tile::TRAP) {
-                     state.map[stepX][stepY] = Tile::BLANK;
-                     state.mapModel->setProperties(stepX, stepY, true, true);
+               Position stepPos = state.player.offset(diffX*i, diffY*i);
+               if (stepPos.withinMap()) {
+                  if (Tile& stepTile = Utils::tileAt(state.map, stepPos); stepTile == Tile::WALL || stepTile == Tile::TRAP) {
+                     stepTile = Tile::BLANK;
+                     state.mapModel->setProperties(stepPos.x, stepPos.y, true, true);
                   }
                }
             }
@@ -1901,11 +1915,13 @@ bool castSpell(Spell chosenSpell) {
          break;
       case Spell::MINEFIELD:
          for (int i = 0; i < 5; i++) {
-            int tempx = state.player.x+Utils::randGen->getInt(-2, 2);
-            int tempy = state.player.y+Utils::randGen->getInt(-2, 2);
-            if (tempx >= 0 && tempy >= 0 && tempx < MAP_WIDTH && tempy < MAP_HEIGHT) {
-               if (state.map[tempx][tempy] == Tile::BLANK) {
-                  state.map[tempx][tempy] = Tile::TRAP;
+            Position temp = state.player.offset(
+               Utils::randGen->getInt(-2, 2),
+               Utils::randGen->getInt(-2, 2)
+            );
+            if (temp.withinMap()) {
+               if (Tile& tempTile = Utils::tileAt(state.map, temp); tempTile == Tile::BLANK) {
+                  tempTile = Tile::TRAP;
                   minePlaced = true;
                }
             }
