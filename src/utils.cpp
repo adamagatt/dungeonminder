@@ -35,15 +35,15 @@ bool Utils::isEmptyPatch(const Map& map, int x, int y) {
    if (x <= 0 || x >= MAP_WIDTH || y <= 0 || y >= MAP_HEIGHT)
       return false;
 
-   return map[x-1][y-1] == BLANK &&
-          map[x-1][y] == BLANK &&
-          map[x-1][y+1] == BLANK &&
-          map[x][y-1] == BLANK &&
-          map[x][y] == BLANK &&
-          map[x][y+1] == BLANK &&
-          map[x+1][y-1] == BLANK &&
-          map[x+1][y] == BLANK &&
-          map[x+1][y+1] == BLANK;
+   return map[x-1][y-1] == Tile::BLANK &&
+          map[x-1][y] == Tile::BLANK &&
+          map[x-1][y+1] == Tile::BLANK &&
+          map[x][y-1] == Tile::BLANK &&
+          map[x][y] == Tile::BLANK &&
+          map[x][y+1] == Tile::BLANK &&
+          map[x+1][y-1] == Tile::BLANK &&
+          map[x+1][y] == Tile::BLANK &&
+          map[x+1][y+1] == Tile::BLANK;
 }
 
 bool Utils::isEmptyPatch(const Map& map, const Position& pos) {

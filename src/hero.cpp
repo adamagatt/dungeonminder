@@ -30,11 +30,11 @@ void Hero::giveItem() {
          for (int i = 0; i < MAP_WIDTH; i++) {
             for (int j = 0; j < MAP_HEIGHT; j++) {
                Tile& testTile = Utils::tileAt(game.map, {i, j});
-               if (testTile == BLANK && Utils::randGen->getInt(0, 29) == 0) {
-                  testTile = WALL;
+               if (testTile == Tile::BLANK && Utils::randGen->getInt(0, 29) == 0) {
+                  testTile = Tile::WALL;
                   game.mapModel->setProperties(i, j, false, false);
-               } else if (testTile == WALL && Utils::randGen->getInt(0, 10) == 0) {
-                  testTile = BLANK;
+               } else if (testTile == Tile::WALL && Utils::randGen->getInt(0, 10) == 0) {
+                  testTile = Tile::BLANK;
                   game.mapModel->setProperties(i, j, true, true);
                }
             }
@@ -53,8 +53,8 @@ void Hero::giveItem() {
             int pathX = -1, pathY = -1;
             for (int i = 0; i < path.size(); i++) {
                path.get(i, &pathX, &pathY);
-               if (game.map[pathX][pathY] == WALL) {
-                  game.map[pathX][pathY] = BLANK;
+               if (game.map[pathX][pathY] == Tile::WALL) {
+                  game.map[pathX][pathY] = Tile::BLANK;
                   game.mapModel->setProperties(pathX, pathY, true, true);
                }
 
@@ -121,7 +121,7 @@ bool Hero::move() {
       // If the hero is ready to move
       if (timer == 0 || hasteTimer > 0) {
          nextLevel = checkWin();
-         Utils::tileAt(game.map, pos) = BLANK;
+         Utils::tileAt(game.map, pos) = Tile::BLANK;
          Position diff{0, 0};
          // If the hero can see the player
          if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player) < 2 && game.mapModel->isInFov(pos.x, pos.y)) {
@@ -155,11 +155,11 @@ bool Hero::move() {
                path.compute(pos.x, pos.y, target->x, target->y); 
             } else {
                if (pos == dest1) {
-                  Utils::tileAt(game.map, dest1.offset(0, -1)) = CHEST_OPEN;
+                  Utils::tileAt(game.map, dest1.offset(0, -1)) = Tile::CHEST_OPEN;
                   giveItem();
                   dest1 = {-1, -1};
                } else if (dest1.x == -1 && pos == dest2) {
-                  Utils::tileAt(game.map, dest2.offset(0, -1)) = CHEST_OPEN;
+                  Utils::tileAt(game.map, dest2.offset(0, -1)) = Tile::CHEST_OPEN;
                   giveItem();
                   dest2 = {-1, -1};
                } else {
@@ -206,7 +206,7 @@ bool Hero::move() {
             }
          }
          Position dest = pos.offset(diff);
-         if (Utils::tileAt(game.map, dest) == MONSTER) {
+         if (Utils::tileAt(game.map, dest) == Tile::MONSTER) {
             if (pacifismTimer > 0) {
                game.mapModel->setProperties(dest.x, dest.y, true, false);
                computePath();
@@ -244,34 +244,34 @@ bool Hero::move() {
                   }
                }
             }
-         } else if (Utils::tileAt(game.map, dest) == FIELD) {
+         } else if (Utils::tileAt(game.map, dest) == Tile::FIELD) {
             message("The hero is blocked by the forcefield", MessageType::SPELL);
             computePath();
-         } else if (Utils::tileAt(game.map, dest) == WALL) {
+         } else if (Utils::tileAt(game.map, dest) == Tile::WALL) {
             computePath();
-         } else if (Utils::tileAt(game.map, dest) == TRAP) {
+         } else if (Utils::tileAt(game.map, dest) == Tile::TRAP) {
             message("The hero falls into the trap!", MessageType::NORMAL);
             health -= 4;
-            Utils::tileAt(game.map, dest) = BLANK;
+            Utils::tileAt(game.map, dest) = Tile::BLANK;
             pos = dest;
             if (health <= 0) {
                dead = true;
                message("The hero has died!", MessageType::IMPORTANT);
                redrawCallback();
             }
-         } else if (Utils::tileAt(game.map, dest) == ILLUSION) {
-            Utils::tileAt(game.map, dest) = BLANK;
+         } else if (Utils::tileAt(game.map, dest) == Tile::ILLUSION) {
+            Utils::tileAt(game.map, dest) = Tile::BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
             message("The hero disrupts the illusion", MessageType::SPELL);
             message("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
-         } else if (Utils::tileAt(game.map, dest) == BLANK) {
+         } else if (Utils::tileAt(game.map, dest) == Tile::BLANK) {
             pos = dest;
-         } else if (Utils::tileAt(game.map, dest) == PLAYER) {
+         } else if (Utils::tileAt(game.map, dest) == Tile::PLAYER) {
             std::swap(game.player, pos);
             message("The hero passes through you", MessageType::NORMAL);
-            game.map[game.player.x][game.player.y] = PLAYER;
+            game.map[game.player.x][game.player.y] = Tile::PLAYER;
          }
-         Utils::tileAt(game.map, pos) = HERO;
+         Utils::tileAt(game.map, pos) = Tile::HERO;
          if ((items.contains(Item::slowBoots) && Utils::randGen->getInt(1, 2) == 1) || slow) {
             timer = wait*3/2;
          } else {
@@ -324,7 +324,7 @@ bool Hero::move() {
       summonMonsterTimer--;
       if (game.monsterList.size() < MAX_MONSTERS && summonMonsterTimer%15 == 1) {
          Position l{0, 0};
-         while (Utils::tileAt(game.map, l) != BLANK || Utils::dist(pos, l) > 10) {
+         while (Utils::tileAt(game.map, l) != Tile::BLANK || Utils::dist(pos, l) > 10) {
             l = {
                Utils::randGen->getInt(0, MAP_WIDTH-1),
                Utils::randGen->getInt(0, MAP_HEIGHT-1)
@@ -346,7 +346,7 @@ bool Hero::move() {
          for (int j = pos.y-2; j <= pos.y+2; j++) {
             Position testPos{i, j};
             if (testPos.withinMap()) {
-               if (Utils::tileAt(game.map, testPos) == TRAP && !moved[i-pos.x+2][j-pos.y+2]) {
+               if (Utils::tileAt(game.map, testPos) == Tile::TRAP && !moved[i-pos.x+2][j-pos.y+2]) {
                   Position dir = pos.offset(-i, -j);
                   if ((abs(dir.x)+abs(dir.y))>=2) {
                      if (abs(dir.x) > abs(dir.y)) {
@@ -363,12 +363,12 @@ bool Hero::move() {
                   Position trapPos = dir.offset(i, j);
                   Tile& trapTile = Utils::tileAt(game.map, trapPos);
                   Tile& testTile = Utils::tileAt(game.map, testPos);
-                  if (trapTile == BLANK) {
-                     trapTile = TRAP;
-                     testTile = BLANK;
+                  if (trapTile == Tile::BLANK) {
+                     trapTile = Tile::TRAP;
+                     testTile = Tile::BLANK;
                      moved[i+dir.x-pos.x+2][j+dir.y-pos.y+2] = true;
-                  } else if (trapTile == HERO) {
-                     testTile = BLANK;
+                  } else if (trapTile == Tile::HERO) {
+                     testTile = Tile::BLANK;
                      if (!dead) {
                         message("A trap is pulled onto the hero!", MessageType::NORMAL);
                         health -= 4;
@@ -380,8 +380,8 @@ bool Hero::move() {
                      } else {
                         message("A trap is pulled onto the hero's corpse!", MessageType::NORMAL);
                      }
-                  } else if (trapTile == MONSTER) {
-                     testTile = BLANK;
+                  } else if (trapTile == Tile::MONSTER) {
+                     testTile = Tile::BLANK;
                      Monster* target = game.findMonster(dir.offset(i, j));
                      message("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
                      game.hitMonster(target->x, target->y, 4);
@@ -402,7 +402,7 @@ bool Hero::inSpellRadius() const {
 bool Hero::isAdjacent(int x, int y) const {
    bool result = false;
    if (x > 0 && x < MAP_WIDTH && y > 0 && y < MAP_HEIGHT) {
-      result = game.map[x-1][y-1] == HERO || game.map[x-1][y] == HERO || game.map[x-1][y+1] == HERO || game.map[x][y-1] == HERO || game.map[x][y] == HERO || game.map[x][y+1] == HERO || game.map[x+1][y-1] == HERO || game.map[x+1][y] == HERO || game.map[x+1][y+1] == HERO;
+      result = game.map[x-1][y-1] == Tile::HERO || game.map[x-1][y] == Tile::HERO || game.map[x-1][y+1] == Tile::HERO || game.map[x][y-1] == Tile::HERO || game.map[x][y] == Tile::HERO || game.map[x][y+1] == Tile::HERO || game.map[x+1][y-1] == Tile::HERO || game.map[x+1][y] == Tile::HERO || game.map[x+1][y+1] == Tile::HERO;
    }
    return result;
 }

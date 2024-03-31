@@ -54,7 +54,7 @@ gameLoop:
       // Creates the map
       for (int i = 0; i < MAP_WIDTH; i++) {
          for (int j = 0; j < MAP_HEIGHT; j++) {
-            state.map[i][j] = WALL;
+            state.map[i][j] = Tile::WALL;
             cloud[i][j] = 0;
             field[i][j] = 0;
          }
@@ -67,7 +67,7 @@ gameLoop:
       }
       state.mapModel->clear();
       drawBSP(&mapBSP);
-      state.map[0][0] = WALL;
+      state.map[0][0] = Tile::WALL;
 
       // Initialise the hero and player
       Position heroPos = Utils::randomMapPosWithCondition(
@@ -76,14 +76,14 @@ gameLoop:
       );
 
       Position stairsPos = heroPos.offset(0, 1);
-      Utils::tileAt(state.map, stairsPos) = STAIRS_UP;
+      Utils::tileAt(state.map, stairsPos) = Tile::STAIRS_UP;
       state.mapModel->setProperties(stairsPos.x, stairsPos.y+1, true, false);
 
       state.player = heroPos.offset(0, -1);
       Hero& hero = *(state.hero);
-      Utils::tileAt(state.map, state.player) = PLAYER;
+      Utils::tileAt(state.map, state.player) = Tile::PLAYER;
       hero.pos = heroPos;
-      Utils::tileAt(state.map, hero.pos) = HERO;
+      Utils::tileAt(state.map, hero.pos) = Tile::HERO;
       hero.health = 10;
       hero.damage = 5;
       hero.timer = 1;
@@ -113,7 +113,7 @@ gameLoop:
          Position stairsPos = Utils::randomMapPosWithCondition(
             [&hero](const auto& pos){return Utils::isEmptyPatch(state.map, pos) && Utils::dist(hero.pos, pos) >= 20;}
          );
-         Utils::tileAt(state.map, stairsPos) = STAIRS;
+         Utils::tileAt(state.map, stairsPos) = Tile::STAIRS;
          hero.stairs = stairsPos.offset(0, 1);
          state.mapModel->setProperties(stairsPos.x, stairsPos.y, true, false);
 
@@ -123,7 +123,7 @@ gameLoop:
                    Utils::dist(hero.pos, pos) >= 20 &&
                    Utils::dist(hero.stairs, pos) >= 20;
          });
-         Utils::tileAt(state.map, chest1Pos) = CHEST;
+         Utils::tileAt(state.map, chest1Pos) = Tile::CHEST;
          state.mapModel->setProperties(chest1Pos.x, chest1Pos.y, true, false);
          hero.dest1 = chest1Pos.offset(0, 1);
 
@@ -133,7 +133,7 @@ gameLoop:
                    Utils::dist(hero.dest1, pos) >= 20 &&
                    Utils::dist(hero.stairs, pos) >= 20;
          });
-         Utils::tileAt(state.map, chest2Pos) = CHEST;
+         Utils::tileAt(state.map, chest2Pos) = Tile::CHEST;
          state.mapModel->setProperties(chest2Pos.x, chest2Pos.y, true, false);
          hero.dest2 = chest2Pos.offset(0, 1);
       }
@@ -141,9 +141,9 @@ gameLoop:
       // PLACE TRAPS
       for (int i = 0; i < 10; i++) {
          Position trapPos = Utils::randomMapPosWithCondition(
-            [](const auto& pos){return Utils::tileAt(state.map, pos) == BLANK;}
+            [](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK;}
          );
-         Utils::tileAt(state.map, trapPos) = TRAP;
+         Utils::tileAt(state.map, trapPos) = Tile::TRAP;
       }
 
       if (state.level < 10) {
@@ -198,7 +198,7 @@ gameLoop:
             int direction = getDirection();
             if (direction != 0) {
                Position target = state.player.directionOffset(direction);
-               state.map[target.x][target.y] = WALL;
+               state.map[target.x][target.y] = Tile::WALL;
                state.mapModel->setProperties(target.x, target.y, false, false);
                hero.computePath();
             }
@@ -227,32 +227,32 @@ gameLoop:
             }
          }
          if (dest.withinMap()) {
-            if (state.map[dest.x][dest.y] == BLANK) {
-               state.map[state.player.x][state.player.y] = BLANK;
-               state.map[dest.x][dest.y] = PLAYER;
+            if (state.map[dest.x][dest.y] == Tile::BLANK) {
+               state.map[state.player.x][state.player.y] = Tile::BLANK;
+               state.map[dest.x][dest.y] = Tile::PLAYER;
                state.player = dest;
-            } else if (state.map[dest.x][dest.y] == MONSTER) {
+            } else if (state.map[dest.x][dest.y] == Tile::MONSTER) {
                Monster* curMonster = state.findMonster(dest);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == HERO) {
+            } else if (state.map[dest.x][dest.y] == Tile::HERO) {
                if (hero.dead) {
                   addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
                } else {
                   addMessage("You are blocked by the hero", MessageType::NORMAL);
                }
-            } else if (state.map[dest.x][dest.y] == TRAP) {
+            } else if (state.map[dest.x][dest.y] == Tile::TRAP) {
                addMessage("You shy away from the trap", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == FIELD) {
+            } else if (state.map[dest.x][dest.y] == Tile::FIELD) {
                addMessage("You are blocked by the forcefield", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == ILLUSION) {
-               state.map[dest.x][dest.y] = BLANK;
+            } else if (state.map[dest.x][dest.y] == Tile::ILLUSION) {
+               state.map[dest.x][dest.y] = Tile::BLANK;
                state.illusion.x = -1; state.illusion.y = -1;
                addMessage("You disrupt the illusion", MessageType::SPELL);
-            } else if (state.map[dest.x][dest.y] == PORTAL) {
+            } else if (state.map[dest.x][dest.y] == Tile::PORTAL) {
                addMessage("You are blocked by a swirling portal", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == CHEST || state.map[dest.x][dest.y] == CHEST_OPEN) {
+            } else if (state.map[dest.x][dest.y] == Tile::CHEST || state.map[dest.x][dest.y] == Tile::CHEST_OPEN) {
                addMessage("You are blocked by the chest", MessageType::NORMAL);
-            } else if (state.map[dest.x][dest.y] == STAIRS || state.map[dest.x][dest.y] == STAIRS_UP) {
+            } else if (state.map[dest.x][dest.y] == Tile::STAIRS || state.map[dest.x][dest.y] == Tile::STAIRS_UP) {
                addMessage("You are blocked by the stairs", MessageType::NORMAL);
             }
          }
@@ -301,7 +301,7 @@ gameLoop:
                      field[i][j]--;
                      if (field[i][j] == 0) {
                         state.mapModel->setProperties(i, j, true, true);
-                        state.map[i][j] = BLANK;
+                        state.map[i][j] = Tile::BLANK;
                      }
                   }
                }
@@ -377,42 +377,42 @@ void drawScreen() {
          }
          if (cloud[i][j] > 0) {
             console.setDefaultBackground(TCODColor(100, 150, 100));
-            if (state.map[i][j] == BLANK) {
+            if (state.map[i][j] == Tile::BLANK) {
                console.setDefaultForeground(TCODColor(80, 100, 80));
                console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_SET);
             } else {
                console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
             }
          }
-         if (state.map[i][j] == WALL) {
+         if (state.map[i][j] == Tile::WALL) {
             console.setDefaultForeground(TCODColor(160-(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30), 90+(int)(wallNoise[i][j]*30)));
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == STAIRS_UP) {
+         } else if (state.map[i][j] == Tile::STAIRS_UP) {
             console.setDefaultForeground(TCODColor(200, 200, 200));
             console.putChar(i+LEFT, j+TOP, '<', TCOD_BKGND_SET);
-         } else if (state.map[i][j] == CHEST) {
+         } else if (state.map[i][j] == Tile::CHEST) {
             console.setDefaultForeground(TCODColor::lightBlue);
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == CHEST_OPEN) {
+         } else if (state.map[i][j] == Tile::CHEST_OPEN) {
             console.setDefaultForeground(TCODColor(128, 64, 0));
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == TRAP) {
+         } else if (state.map[i][j] == Tile::TRAP) {
             console.setDefaultForeground(TCODColor(100,150,100));
             console.putChar(i+LEFT, j+TOP, 207, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == FIELD) {
+         } else if (state.map[i][j] == Tile::FIELD) {
             console.setDefaultForeground(TCODColor(50, 250, 200));
             console.putChar(i+LEFT, j+TOP, 177, TCOD_BKGND_NONE);
-         } else if (state.map[i][j] == ILLUSION) {
+         } else if (state.map[i][j] == Tile::ILLUSION) {
             console.setDefaultForeground(TCODColor(50,250,200));
             console.putChar(i+LEFT, j+TOP, 127, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == PORTAL) {
+         } else if (state.map[i][j] == Tile::PORTAL) {
             console.setDefaultForeground(TCODColor::red);
             console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
-         } else if (state.map[i][j] == MARKER1) {
+         } else if (state.map[i][j] == Tile::MARKER1) {
             console.setDefaultForeground(TCODColor::red);
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
             console.setDefaultForeground(TCODColor::grey);
-         } else if (state.map[i][j] == MARKER2) {
+         } else if (state.map[i][j] == Tile::MARKER2) {
             console.setDefaultForeground(TCODColor::lightBlue);
             console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
             console.setDefaultForeground(TCODColor::grey);
@@ -528,7 +528,7 @@ void monsterMove(Monster& curMonster) {
       // Once the monster has spawned
       if (curMonster.portalTimer == 0) {
          state.mapModel->setProperties(curMonster.x, curMonster.y, true, true);
-         state.map[curMonster.x][curMonster.y] = MONSTER;
+         state.map[curMonster.x][curMonster.y] = Tile::MONSTER;
       }
    } else {
       Hero& hero = *(state.hero);
@@ -537,7 +537,7 @@ void monsterMove(Monster& curMonster) {
          if (curMonster.timer == 0) {
             if (curMonster.symbol != '*') {
                bool rangedAttack = false;
-               state.map[curMonster.x][curMonster.y] = BLANK;
+               state.map[curMonster.x][curMonster.y] = Tile::BLANK;
                int diffx = 0, diffy = 0;
 
                if (curMonster.conditionTimers[Condition::HALTED] > 0) {
@@ -675,7 +675,7 @@ void monsterMove(Monster& curMonster) {
                            state.hitMonster(curMonster.x, curMonster.y, damage);
                         }
                      }
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == MONSTER && (diffx != 0 || diffy != 0)) {
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
                      Monster* otherMonster = state.findMonster(curMonster.x+diffx, curMonster.y+diffy);
                      if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
                         sprintf(charBuffer, "%d", curMonster.damage);
@@ -684,31 +684,31 @@ void monsterMove(Monster& curMonster) {
                      } else {
                         addMessage("The " + curMonster.name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
                      }
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == PLAYER) {
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::PLAYER) {
                      std::swap(state.player.x, curMonster.x);
                      std::swap(state.player.y, curMonster.y);
                      addMessage("The " + curMonster.name + " passes through you", MessageType::NORMAL);
-                     state.map[state.player.x][state.player.y] = PLAYER;
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == TRAP) {
+                     state.map[state.player.x][state.player.y] = Tile::PLAYER;
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::TRAP) {
                      addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
-                     state.map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
+                     state.map[curMonster.x+diffx][curMonster.y+diffy] = Tile::BLANK;
                      curMonster.x+=diffx;
                      curMonster.y+=diffy;
                      state.hitMonster(curMonster.x, curMonster.y, 4);
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == ILLUSION) {
-                     state.map[curMonster.x+diffx][curMonster.y+diffy] = BLANK;
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::ILLUSION) {
+                     state.map[curMonster.x+diffx][curMonster.y+diffy] = Tile::BLANK;
                      state.illusion.x = -1; state.illusion.y = -1;
                      addMessage("The "+curMonster.name+" disrupts the illusion", MessageType::SPELL);
-                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == BLANK) {
+                  } else if (state.map[curMonster.x+diffx][curMonster.y+diffy] == Tile::BLANK) {
                      curMonster.x+=diffx;
                      curMonster.y+=diffy;
                   }
                }
-               state.map[curMonster.x][curMonster.y] = MONSTER;
+               state.map[curMonster.x][curMonster.y] = Tile::MONSTER;
             } else {
                if (state.monsterList.size() < MAX_MONSTERS) {
                   int lx = 0, ly = 0;
-                  while (state.map[lx][ly] != BLANK) {
+                  while (state.map[lx][ly] != Tile::BLANK) {
                      lx = Utils::randGen->getInt(0, MAP_WIDTH-1);
                      ly = Utils::randGen->getInt(0, MAP_HEIGHT-1);
                   }
@@ -757,17 +757,17 @@ void drawBSP(TCODBsp* curBSP) {
          int y2 = curBSP->y+curBSP->h-1;
          for (int i = x1+2; i <= x2-2; i++) {
             for (int j = y1+Utils::randGen->getInt(1, 2); j <= y2-Utils::randGen->getInt(1, 2); j++) {
-               state.map[i][j] = BLANK;
+               state.map[i][j] = Tile::BLANK;
                state.mapModel->setProperties(i, j, true, true);
             }
          }
          for (int j = y1+2; j <= y2-2; j++) {
             if (Utils::randGen->getInt(1, 2) == 1) {
-               state.map[x1+1][j] = BLANK;
+               state.map[x1+1][j] = Tile::BLANK;
                state.mapModel->setProperties(x1+1, j, true, true);
             }
             if (Utils::randGen->getInt(1, 2) == 1) {
-               state.map[x2-1][j] = BLANK;
+               state.map[x2-1][j] = Tile::BLANK;
                state.mapModel->setProperties(x2-1, j, true, true);
             }
          }
@@ -784,7 +784,7 @@ void drawBSP(TCODBsp* curBSP) {
                x2 = temp;
             }
             for (int i = x1; i <= x2; i++) {
-               state.map[i][y] = BLANK;
+               state.map[i][y] = Tile::BLANK;
                state.mapModel->setProperties(i, y, true, true);
             }
          } else {
@@ -797,7 +797,7 @@ void drawBSP(TCODBsp* curBSP) {
                y2 = temp;
             }
             for (int j = y1; j <= y2; j++) {
-               state.map[x][j] = BLANK;
+               state.map[x][j] = Tile::BLANK;
                state.mapModel->setProperties(x, j, true, true);
             }
          }
@@ -1720,8 +1720,8 @@ bool castSpell(Spell chosenSpell) {
          for (int i = state.player.x-1; i <= state.player.x+1; i++) {
             for (int j = state.player.y-1; j <= state.player.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
-                  if (state.map[i][j] == WALL || state.map[i][j] == TRAP) {
-                     state.map[i][j] = BLANK;
+                  if (state.map[i][j] == Tile::WALL || state.map[i][j] == Tile::TRAP) {
+                     state.map[i][j] = Tile::BLANK;
                      state.mapModel->setProperties(i, j, true, true);
                      if (hero.target == nullptr) {
                         hero.computePath();
@@ -1738,7 +1738,7 @@ bool castSpell(Spell chosenSpell) {
             for (int j = state.player.y-2; j <= state.player.y+2; j++) {
                int cloudDist = abs(state.player.x-i)+abs(state.player.y-j);
                if ((cloudDist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
-                  if (state.map[i][j] != WALL) {
+                  if (state.map[i][j] != Tile::WALL) {
                      int newCloudLevel = CLOUD_TIME*(8-cloudDist)/8;
                      if (newCloudLevel > cloud[i][j]) {
                         cloud[i][j] = newCloudLevel;
@@ -1756,9 +1756,9 @@ bool castSpell(Spell chosenSpell) {
          direction = getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (target.withinMap() && state.map[target.x][target.y] == BLANK) {
+            if (target.withinMap() && state.map[target.x][target.y] == Tile::BLANK) {
                addMessage("You create a trap in the ground", MessageType::SPELL);
-               state.map[target.x][target.y] = TRAP;
+               state.map[target.x][target.y] = Tile::TRAP;
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -1899,8 +1899,8 @@ bool castSpell(Spell chosenSpell) {
                int stepX = diffX*i+state.player.x;
                int stepY = diffY*i+state.player.y;
                if (stepX>=0 && stepY>=0 && stepX<MAP_WIDTH && stepY <MAP_HEIGHT) {
-                  if (state.map[stepX][stepY] == WALL || state.map[stepX][stepY] == TRAP) {
-                     state.map[stepX][stepY] = BLANK;
+                  if (state.map[stepX][stepY] == Tile::WALL || state.map[stepX][stepY] == Tile::TRAP) {
+                     state.map[stepX][stepY] = Tile::BLANK;
                      state.mapModel->setProperties(stepX, stepY, true, true);
                   }
                }
@@ -1917,8 +1917,8 @@ bool castSpell(Spell chosenSpell) {
             int tempx = state.player.x+Utils::randGen->getInt(-2, 2);
             int tempy = state.player.y+Utils::randGen->getInt(-2, 2);
             if (tempx >= 0 && tempy >= 0 && tempx < MAP_WIDTH && tempy < MAP_HEIGHT) {
-               if (state.map[tempx][tempy] == BLANK) {
-                  state.map[tempx][tempy] = TRAP;
+               if (state.map[tempx][tempy] == Tile::BLANK) {
+                  state.map[tempx][tempy] = Tile::TRAP;
                   minePlaced = true;
                }
             }
@@ -1934,7 +1934,7 @@ bool castSpell(Spell chosenSpell) {
          direction = getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (state.map[target.x][target.y] == MONSTER) {
+            if (state.map[target.x][target.y] == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                addMessage("The " + targetMonster->name + " looks pained!", MessageType::SPELL);
                targetMonster->maimed = true;
@@ -1948,7 +1948,7 @@ bool castSpell(Spell chosenSpell) {
          direction = getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (state.map[target.x][target.y] == MONSTER) {
+            if (state.map[target.x][target.y] == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                addMessage("A terrible snap comes from inside the " + targetMonster->name + "!", MessageType::SPELL);
                targetMonster->health = (targetMonster->health+1)/2;
@@ -1962,12 +1962,12 @@ bool castSpell(Spell chosenSpell) {
          direction = getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (target.withinMap() && state.map[target.x][target.y] == BLANK ) {
+            if (target.withinMap() && state.map[target.x][target.y] == Tile::BLANK ) {
                if (state.illusion.x != -1) {
-                  state.map[state.illusion.x][state.illusion.y] = BLANK;
+                  state.map[state.illusion.x][state.illusion.y] = Tile::BLANK;
                }
                state.illusion = target;
-               state.map[target.x][target.y] = ILLUSION;
+               state.map[target.x][target.y] = Tile::ILLUSION;
                drawScreen();
             } else {
                addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
@@ -2000,8 +2000,8 @@ bool castSpell(Spell chosenSpell) {
                      int curX = state.player.x+i;
                      int curY = state.player.y+j;
                      if (curX >= 0 && curY >= 0 && curX < MAP_WIDTH && curY < MAP_HEIGHT) {
-                        if (state.map[curX][curY] == TRAP || state.map[curX][curY] == WALL) {
-                           state.map[curX][curY] = BLANK;
+                        if (state.map[curX][curY] == Tile::TRAP || state.map[curX][curY] == Tile::WALL) {
+                           state.map[curX][curY] = Tile::BLANK;
                         }
                         cloud[curX][curY] = (diff == 0?CLOUD_TIME:CLOUD_TIME*7/8);
                         state.mapModel->setProperties(curX, curY, false, true);
@@ -2029,18 +2029,18 @@ bool castSpell(Spell chosenSpell) {
             if (diffX == 0 || diffY == 0) {
                for (int i = -2; i <= 2; i++) {
                   curr = state.player.offset(diffX+(i*(1-abs(diffX))), diffY+(i*(1-abs(diffY))));
-                  if (state.map[curr.x][curr.y] == BLANK) {
+                  if (state.map[curr.x][curr.y] == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curr.x][curr.y] = FIELD;
+                     state.map[curr.x][curr.y] = Tile::FIELD;
                      state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
                }
                for (int i = -1; i <= 1; i++) {
                   curr = state.player.offset(diffX*2+(i*(1-abs(diffX))), diffY*2+(i*(1-abs(diffY))));
-                  if (state.map[curr.x][curr.y] == BLANK) {
+                  if (state.map[curr.x][curr.y] == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curr.x][curr.y] = FIELD;
+                     state.map[curr.x][curr.y] = Tile::FIELD;
                      state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
@@ -2048,9 +2048,9 @@ bool castSpell(Spell chosenSpell) {
             } else {
                for (int i = -1; i <= 1; i++) {
                   curr = state.player.offset(diffX-(i*diffX), diffY+(i*diffY));
-                  if (state.map[curr.x][curr.y] == BLANK) {
+                  if (state.map[curr.x][curr.y] == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curr.x][curr.y] = FIELD;
+                     state.map[curr.x][curr.y] = Tile::FIELD;
                      state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
@@ -2060,9 +2060,9 @@ bool castSpell(Spell chosenSpell) {
                      static_cast<int>(diffX/2.0f-((i-1.5)*diffX)),
                      static_cast<int>(diffY/2.0f+((i-1.5)*diffY))
                   );
-                  if (state.map[curr.x][curr.y] == BLANK) {
+                  if (state.map[curr.x][curr.y] == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     state.map[curr.x][curr.y] = FIELD;
+                     state.map[curr.x][curr.y] = Tile::FIELD;
                      state.mapModel->setProperties(curr.x, curr.y, false, false);
                      fieldMade = true;
                   }
@@ -2089,53 +2089,53 @@ bool castSpell(Spell chosenSpell) {
                   Position temp{step1.x, step1.y};
                   bool trapSprung = false;
                   if (step1.withinMap() && step2.withinMap()) {
-                     if (state.map[step1.x][step1.y] == MONSTER) {
-                        if (state.map[step2.x][step2.y] == BLANK) {
-                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == TRAP)) {
+                     if (state.map[step1.x][step1.y] == Tile::MONSTER) {
+                        if (state.map[step2.x][step2.y] == Tile::BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == Tile::BLANK || state.map[step3.x][step3.y] == Tile::TRAP)) {
                               temp = {step3.x, step3.y};
-                              if (state.map[step3.x][step3.y] == TRAP) {
+                              if (state.map[step3.x][step3.y] == Tile::TRAP) {
                                  trapSprung = true;
                               }
                            } else {
                               temp = step2;
                            }
-                        } else if (state.map[step2.x][step2.y] == TRAP) {
+                        } else if (state.map[step2.x][step2.y] == Tile::TRAP) {
                            trapSprung = true;
                            temp = step2;
                         }
                         Monster* target = state.findMonster(step1);
                         target->timer = target->wait;
-                        state.map[step1.x][step1.y] = BLANK;
-                        state.map[temp.x][temp.y] = MONSTER;
+                        state.map[step1.x][step1.y] = Tile::BLANK;
+                        state.map[temp.x][temp.y] = Tile::MONSTER;
                         target->x = temp.x; target->y = temp.y;
                         if (trapSprung) {
                            addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
                            state.hitMonster(target->x, target->y, 4);
                         }
-                     } else if (state.map[step1.x][step1.y] == HERO) {
-                        if (state.map[step2.x][step2.y] == BLANK) {
-                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == TRAP)) {
+                     } else if (state.map[step1.x][step1.y] == Tile::HERO) {
+                        if (state.map[step2.x][step2.y] == Tile::BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == Tile::BLANK || state.map[step3.x][step3.y] == Tile::TRAP)) {
                               temp = step3;
-                              if (state.map[step3.x][step3.y] == TRAP) {
+                              if (state.map[step3.x][step3.y] == Tile::TRAP) {
                                  trapSprung = true;
                               }
                            } else {
                               temp = step2;
                            }
-                        } else if (state.map[step2.x][step2.y] == TRAP) {
+                        } else if (state.map[step2.x][step2.y] == Tile::TRAP) {
                            trapSprung = true;
                            temp = step2;
                         }
-                        state.map[step1.x][step1.y] = BLANK;
-                        state.map[temp.x][temp.y] = HERO;
+                        state.map[step1.x][step1.y] = Tile::BLANK;
+                        state.map[temp.x][temp.y] = Tile::HERO;
                         hero.pos.x = temp.x; hero.pos.y = temp.y;
                         hero.timer = hero.wait;
                         if (trapSprung) {
                            if (!hero.dead) {
                               addMessage("The hero is blown into the trap!", MessageType::SPELL);
                               hero.health -= 4;
-                              state.map[step1.x][step1.y] = BLANK;
-                              state.map[temp.x][temp.y] = HERO;
+                              state.map[step1.x][step1.y] = Tile::BLANK;
+                              state.map[temp.x][temp.y] = Tile::HERO;
                               hero.pos.x = temp.x; hero.pos.y = temp.y;
                               if (hero.health <= 0) {
                                  hero.dead = true;
@@ -2145,8 +2145,8 @@ bool castSpell(Spell chosenSpell) {
                                  addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
                            } else {
-                              state.map[step1.x][step1.y] = BLANK;
-                              state.map[temp.x][temp.y] = HERO;
+                              state.map[step1.x][step1.y] = Tile::BLANK;
+                              state.map[temp.x][temp.y] = Tile::HERO;
                               hero.pos.x = temp.x; hero.pos.y = temp.y;
                               addMessage("The hero's corpse is blown into the trap!", MessageType::SPELL);
                            }
@@ -2155,9 +2155,9 @@ bool castSpell(Spell chosenSpell) {
                               addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                            }
                         }
-                     } else if (state.map[step1.x][step1.y] == TRAP && (state.map[step2.x][step2.y] == BLANK || state.map[step2.x][step2.y] == HERO || state.map[step2.x][step2.y] == MONSTER)) {
-                        if (state.map[step2.x][step2.y] == BLANK) {
-                           if (step3.withinMap() && (state.map[step3.x][step3.y] == BLANK || state.map[step3.x][step3.y] == HERO || state.map[step3.x][step3.y] == MONSTER)) {
+                     } else if (state.map[step1.x][step1.y] == Tile::TRAP && (state.map[step2.x][step2.y] == Tile::BLANK || state.map[step2.x][step2.y] == Tile::HERO || state.map[step2.x][step2.y] == Tile::MONSTER)) {
+                        if (state.map[step2.x][step2.y] == Tile::BLANK) {
+                           if (step3.withinMap() && (state.map[step3.x][step3.y] == Tile::BLANK || state.map[step3.x][step3.y] == Tile::HERO || state.map[step3.x][step3.y] == Tile::MONSTER)) {
                               temp = step3;
                            } else {
                               temp = step2;
@@ -2165,10 +2165,10 @@ bool castSpell(Spell chosenSpell) {
                         } else {
                            temp = step2;
                         }
-                        state.map[step1.x][step1.y] = BLANK;
-                        if (state.map[temp.x][temp.y] == BLANK) {
-                           state.map[temp.x][temp.y] = TRAP;
-                        } else if (state.map[temp.x][temp.y] == HERO) {
+                        state.map[step1.x][step1.y] = Tile::BLANK;
+                        if (state.map[temp.x][temp.y] == Tile::BLANK) {
+                           state.map[temp.x][temp.y] = Tile::TRAP;
+                        } else if (state.map[temp.x][temp.y] == Tile::HERO) {
                            if (!hero.dead) {
                               addMessage("You blow a trap into the hero!", MessageType::SPELL);
                               hero.health -= 4;
@@ -2182,7 +2182,7 @@ bool castSpell(Spell chosenSpell) {
                            } else {
                               addMessage("You blow a trap into the hero's corpse!", MessageType::SPELL);
                            }
-                        } else if (state.map[temp.x][temp.y] == MONSTER) {
+                        } else if (state.map[temp.x][temp.y] == Tile::MONSTER) {
                            Monster* target = state.findMonster(temp);
                            addMessage("You blow a trap into the " + target->name+ "!", MessageType::SPELL);
                            state.hitMonster(target->x, target->y, 4);
@@ -2262,7 +2262,7 @@ void generateMonsters(int level, int amount) {
    for (int a = 0; a < 4; a++) {
       for (int i = 0; i < amount; i++) {
          tempx = 0; tempy = 0;
-         while (state.map[tempx][tempy] != BLANK) {
+         while (state.map[tempx][tempy] != Tile::BLANK) {
             if (a == 0) {
                tempx = Utils::randGen->getInt(0, (MAP_WIDTH-1)/2);
                tempy = Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2);
@@ -2299,7 +2299,7 @@ void displayRangedAttack(int x1, int y1, int x2, int y2) {
 void generateEndBoss() {
    Hero& hero = *(state.hero);
    Position bossPos = Utils::randomMapPosWithCondition(
-      [&hero](const auto& pos){return Utils::tileAt(state.map, pos) == BLANK && Utils::dist(pos, hero.pos) >= 30;}
+      [&hero](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK && Utils::dist(pos, hero.pos) >= 30;}
    );
    int boss = Utils::randGen->getInt(0, 2);
    if (boss == 0) {
@@ -2412,7 +2412,7 @@ bool applyMonsterCondition(Condition curCondition, bool append) {
       int diffX = ((direction-1)%3)-1;
       int diffY = 1-((direction-1)/3);
       Position target = state.player.offset(diffX, diffY);
-      if (state.map[target.x][target.y] == MONSTER) {
+      if (state.map[target.x][target.y] == Tile::MONSTER) {
          Monster* targetMonster = state.findMonster(target);
          const auto& text = CONDITION_START.at(curCondition);
          addMessage(text.first + targetMonster->name + text.second, MessageType::SPELL);

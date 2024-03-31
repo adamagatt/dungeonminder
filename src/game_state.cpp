@@ -27,7 +27,7 @@ Monster* GameState::findMonster(int x, int y) {
 Monster* GameState::heroFindMonster() {
    for (int i = 0; i < MAP_WIDTH; i++) {
       for (int j = 0; j < MAP_HEIGHT; j++) {
-         if (mapModel->isInFov(i, j) && map[i][j] == MONSTER) {
+         if (mapModel->isInFov(i, j) && map[i][j] == Tile::MONSTER) {
             return findMonster(i, j);
          }
       }
@@ -47,7 +47,7 @@ void GameState::hitMonster(int x, int y, int amount) {
             hero->target = nullptr;
             hero->computePath();
          }
-         map[curMonster->x][curMonster->y] = BLANK;
+         map[curMonster->x][curMonster->y] = Tile::BLANK;
          bool found = false;
 
          for (auto it = monsterList.begin(); it != monsterList.end(); ++it) {
@@ -85,10 +85,10 @@ void GameState::addMonster(const std::string& name, char symbol, int x, int y, i
       timer = 0;
    }
    if (portalSpawned) {
-      map[x][y] = PORTAL;
+      map[x][y] = Tile::PORTAL;
       mapModel->setProperties(x, y, true, false);
    } else {
-      map[x][y] = MONSTER;
+      map[x][y] = Tile::MONSTER;
    }
 }
 

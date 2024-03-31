@@ -7,26 +7,34 @@
 #include "game_state.hpp"
 #include "monster.hpp"
 #include "position.hpp"
+#include "utils.hpp"
 
 #include <unordered_set>
 
 class HeroPathCallback : public ITCODPathCallback {
    public :
-   HeroPathCallback(Map& map) : map(map) { }
+   HeroPathCallback(const Map& map) : map(map) { }
 
    float getWalkCost(int xFrom, int yFrom, int xTo, int yTo, void *_userData ) const {
-      float cost = abs(xFrom-xTo)+abs(yFrom-yTo);
-      int dest = map[xTo][yTo];
-      if (dest == WALL) {
-         cost = MAP_WIDTH*MAP_HEIGHT+2;
-      } else if (dest == STAIRS || dest == STAIRS_UP || dest == CHEST || dest == CHEST_OPEN || dest == FIELD) {
-         cost = 0.0f;
+      const Tile& dest = Utils::tileAt(map, {xTo, yTo});
+
+      float cost = 0.0f;
+      if (dest == Tile::WALL) {
+         cost = MAP_WIDTH * MAP_HEIGHT + 2;
+      } else if (
+         dest != Tile::STAIRS &&
+         dest != Tile::STAIRS_UP &&
+         dest != Tile::CHEST &&
+         dest != Tile::CHEST_OPEN &&
+         dest != Tile::FIELD
+      ) {
+         cost = abs(xFrom-xTo)+abs(yFrom-yTo);
       }
       return cost;
    }
 
    private:
-   Map& map;
+   const Map& map;
 };
 
 class Hero {

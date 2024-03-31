@@ -167,7 +167,7 @@ const std::unordered_map<MessageType, TCODColor> MESSAGE_COLOR {
 
 using MessageCallback = void(&)(const std::string&, MessageType);
 
-enum Tile {
+enum class Tile {
     BLANK,
     PLAYER,
     HERO,
