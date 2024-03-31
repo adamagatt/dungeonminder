@@ -69,88 +69,80 @@ gameLoop:
       state.map[0][0] = WALL;
 
       // Initialise the hero and player
-      Position test{-1, -1};
-      while (!isEmptyPatch(test)) {
-         test = {
-            Utils::randGen->getInt(2, MAP_WIDTH-2),
-            Utils::randGen->getInt(2, MAP_HEIGHT-2)
-         };
-      }
-      state.map[test.x][test.y+1] = STAIRS_UP;
-      state.mapModel->setProperties(test.x, test.y+1, true, false);
+      Position heroPos = Utils::randomMapPosWithCondition(
+         [](const auto& pos){return Utils::isEmptyPatch(state.map, pos);},
+         2
+      );
 
-      state.player.x = test.x;
-      state.player.y = test.y-1;
-      state.map[state.player.x][state.player.y] = PLAYER;
-      state.hero->x = test.x;
-      state.hero->y = test.y;
-      state.map[state.hero->x][state.hero->y] = HERO;
-      state.hero->health = 10;
-      state.hero->damage = 5;
-      state.hero->timer = 1;
-      state.hero->wait = 2;
-      state.hero->hasteTimer = 0;
-      state.hero->meditationTimer = 0;
-      state.hero->seeInvisibleTimer = 0;
-      state.hero->slow = false;
-      state.hero->blinking = false;
-      state.hero->regenTimer = 0;
-      state.hero->shieldTimer = 0;
-      state.hero->pacifismTimer = 0;
-      state.hero->target = nullptr;
+      Position stairsPos = heroPos.offset(0, 1);
+      Utils::tileAt(state.map, stairsPos) = STAIRS_UP;
+      state.mapModel->setProperties(stairsPos.x, stairsPos.y+1, true, false);
 
-      state.hero->pathstep = 0;
-      state.hero->dead = false;
-      state.hero->dest1x = -1;
-      state.hero->dest1y = -1;
-      state.hero->dest2x = -1;
-      state.hero->dest2y = -1;
-      state.hero->items.clear();
-      //y--;
+      state.player = heroPos.offset(0, -1);
+      Hero& hero = *(state.hero);
+      Utils::tileAt(state.map, state.player) = PLAYER;
+      hero.pos = heroPos;
+      Utils::tileAt(state.map, hero.pos) = HERO;
+      hero.health = 10;
+      hero.damage = 5;
+      hero.timer = 1;
+      hero.wait = 2;
+      hero.hasteTimer = 0;
+      hero.meditationTimer = 0;
+      hero.seeInvisibleTimer = 0;
+      hero.slow = false;
+      hero.blinking = false;
+      hero.regenTimer = 0;
+      hero.shieldTimer = 0;
+      hero.pacifismTimer = 0;
+      hero.target = nullptr;
+
+      hero.pathstep = 0;
+      hero.dead = false;
+      hero.dest1 = {-1, -1};
+      hero.dest2 = {-1, -1};
+      hero.items.clear();
       heroMana = 5*manaBlipSize;
       monsterMana = 5*manaBlipSize;
       worldMana = 5*manaBlipSize;
       state.illusion.x = -1; state.illusion.y = -1;
 
-      int tempx = 0, tempy = 0;
       if (state.level < 10) {
          // Place the stairs
-         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20)  {
-            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-         }
-         state.map[tempx][tempy] = STAIRS;
-         state.hero->stairsx = tempx; state.hero->stairsy = tempy+1;
-         state.mapModel->setProperties(tempx, tempy, true, false);
+         Position stairsPos = Utils::randomMapPosWithCondition(
+            [&hero](const auto& pos){return Utils::isEmptyPatch(state.map, pos) && Utils::dist(hero.pos, pos) >= 20;}
+         );
+         Utils::tileAt(state.map, stairsPos) = STAIRS;
+         hero.stairs = stairsPos.offset(0, 1);
+         state.mapModel->setProperties(stairsPos.x, stairsPos.y, true, false);
 
          // Place the chests
-         tempx = 0; tempy = 0;
-         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
-            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-         }
-         state.map[tempx][tempy] = CHEST;
-         state.mapModel->setProperties(tempx, tempy, true, false);
-         state.hero->dest1x = tempx; state.hero->dest1y = tempy+1;
-         tempx = 0; tempy = 0;
-         while (!isEmptyPatch(tempx, tempy) || Utils::dist(state.hero->x, state.hero->y, tempx, tempy) < 20 || Utils::dist(state.hero->dest1x, state.hero->dest1y, tempx, tempy) < 20 || Utils::dist(state.hero->stairsx, state.hero->stairsy, tempx, tempy) < 20) {
-            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-         }
-         state.map[tempx][tempy] = CHEST;
-         state.mapModel->setProperties(tempx, tempy, true, false);
-         state.hero->dest2x = tempx; state.hero->dest2y = tempy+1;
-      } else {
+         Position chest1Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
+            return Utils::isEmptyPatch(state.map, pos) &&
+                   Utils::dist(hero.pos, pos) >= 20 &&
+                   Utils::dist(hero.stairs, pos) >= 20;
+         });
+         Utils::tileAt(state.map, chest1Pos) = CHEST;
+         state.mapModel->setProperties(chest1Pos.x, chest1Pos.y, true, false);
+         hero.dest1 = chest1Pos.offset(0, 1);
+
+         Position chest2Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
+            return Utils::isEmptyPatch(state.map, pos) &&
+                   Utils::dist(hero.pos, pos) >= 20 &&
+                   Utils::dist(hero.dest1, pos) >= 20 &&
+                   Utils::dist(hero.stairs, pos) >= 20;
+         });
+         Utils::tileAt(state.map, chest2Pos) = CHEST;
+         state.mapModel->setProperties(chest2Pos.x, chest2Pos.y, true, false);
+         hero.dest2 = chest2Pos.offset(0, 1);
       }
 
       // PLACE TRAPS
       for (int i = 0; i < 10; i++) {
-         tempx = 0; tempy = 0;
-         while (state.map[tempx][tempy] != BLANK) {
-            tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-            tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-         }
-         state.map[tempx][tempy] = TRAP;
+         Position trapPos = Utils::randomMapPosWithCondition(
+            [](const auto& pos){return Utils::tileAt(state.map, pos) == BLANK;}
+         );
+         Utils::tileAt(state.map, trapPos) = TRAP;
       }
 
       if (state.level < 10) {
@@ -161,7 +153,7 @@ gameLoop:
       }
 
       // Draw the map
-      state.mapModel->computeFov(state.hero->x, state.hero->y);
+      state.mapModel->computeFov(hero.pos.x, hero.pos.y);
       drawScreen();
 
       // Game loop
@@ -207,7 +199,7 @@ gameLoop:
                Position target = state.player.directionOffset(direction);
                state.map[target.x][target.y] = WALL;
                state.mapModel->setProperties(target.x, target.y, false, false);
-               state.hero->computePath();
+               hero.computePath();
             }
          } else if (key.vk == TCODK_F8) {
             heroSpec = 0;
@@ -242,7 +234,7 @@ gameLoop:
                Monster* curMonster = state.findMonster(dest);
                addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
             } else if (state.map[dest.x][dest.y] == HERO) {
-               if (state.hero->dead) {
+               if (hero.dead) {
                   addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
                } else {
                   addMessage("You are blocked by the hero", MessageType::NORMAL);
@@ -266,9 +258,9 @@ gameLoop:
          // Assuming the hero pressed a key that made a turn
          if (turnTaken) {
             // Regenerate mana if the player is close to the hero
-            if (state.hero->inSpellRadius()) {
+            if (hero.inSpellRadius()) {
                // Mana regeneration is faster if the hero is meditating
-               if (state.hero->meditationTimer > 0) {
+               if (hero.meditationTimer > 0) {
                   heroMana += 2;
                   monsterMana += 2;
                   worldMana += 2;
@@ -283,8 +275,8 @@ gameLoop:
                if (worldMana > 5*manaBlipSize) worldMana = 5*manaBlipSize;
             }
             // If the hero isn't dead, make him move
-            if (state.hero->dead == false) {
-               nextlevel = state.hero->move(); 
+            if (hero.dead == false) {
+               nextlevel = hero.move(); 
                // If the hero finished the level, go to the next level
                if (state.level == 10 && state.bossDead) {
                   nextlevel = true;
@@ -319,7 +311,7 @@ gameLoop:
             addMessage("Hero: " + Hero::heroExit[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             addMessage("The hero descends to the next state.level of the dungeon!", MessageType::IMPORTANT);
          } else {
-            state.mapModel->computeFov(state.hero->x, state.hero->y);
+            state.mapModel->computeFov(hero.pos.x, hero.pos.y);
             drawScreen();
          }
       }
@@ -371,13 +363,15 @@ void drawScreen() {
    }
    // Draw the key instructions at the bottom
 
+   Hero& hero = *(state.hero);
+
    // Draw the walls
    for (int i = 0; i < MAP_WIDTH; i++) {
       for (int j = 0; j < MAP_HEIGHT; j++) {
          int floorColour = (int)(floorNoise[i][j]*40);
          console.setDefaultBackground(TCODColor(floorColour, floorColour, floorColour));
-         if (!state.hero->dead && state.mapModel->isInFov(i, j)) {
-            float intensity = 150.0f/pow((pow((i-state.hero->x), 2)+pow((j-state.hero->y),2)), 0.3);
+         if (!hero.dead && state.mapModel->isInFov(i, j)) {
+            float intensity = 150.0f/pow((pow((i-hero.pos.x), 2)+pow((j-hero.pos.y),2)), 0.3);
             console.setDefaultBackground(TCODColor((int)(floorColour+intensity), (int)(floorColour+intensity), floorColour));
          }
          if (cloud[i][j] > 0) {
@@ -433,7 +427,7 @@ void drawScreen() {
    // Show the stairs
    if (state.level < 10) {
       console.setDefaultForeground(TCODColor::white);
-      console.putChar(state.hero->stairsx+LEFT, state.hero->stairsy-1+TOP, '>', TCOD_BKGND_NONE);
+      console.putChar(hero.stairs.x+LEFT, hero.stairs.y-1+TOP, '>', TCOD_BKGND_NONE);
    }
 
 
@@ -442,18 +436,18 @@ void drawScreen() {
    console.putChar(state.player.x+LEFT, state.player.y+TOP, TCOD_CHAR_LIGHT, TCOD_BKGND_NONE);
 
    // Show the hero
-   if (state.hero->dead) {
+   if (hero.dead) {
       console.setDefaultForeground(TCODColor::black);
       console.setDefaultBackground(TCODColor::darkRed);
-      console.putChar(state.hero->x+LEFT, state.hero->y+TOP, '@', TCOD_BKGND_SET);
+      console.putChar(hero.pos.x+LEFT, hero.pos.y+TOP, '@', TCOD_BKGND_SET);
    } else {
-      console.setDefaultForeground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
-      if (state.hero->shieldTimer > 0) {
+      console.setDefaultForeground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
+      if (hero.shieldTimer > 0) {
          console.setDefaultBackground(TCODColor(50, 250, 200));
       } else {
          console.setDefaultBackground(TCODColor::lightYellow);
       }
-      console.putChar(state.hero->x+LEFT, state.hero->y+TOP, '@', TCOD_BKGND_SET);
+      console.putChar(hero.pos.x+LEFT, hero.pos.y+TOP, '@', TCOD_BKGND_SET);
    }
    console.setDefaultBackground(TCODColor::black);
 
@@ -475,7 +469,7 @@ void drawScreen() {
       console.print(3, BOTTOM - 16+i, messageList[i]);
    }
 
-   if (state.hero->dead) {
+   if (hero.dead) {
       //console.setFade(200,TCODColor::darkRed);
       console.setDefaultBackground(TCODColor(84, 40, 0));
       for (int i = 52; i < 77; i++) {
@@ -536,6 +530,7 @@ void monsterMove(Monster& curMonster) {
          state.map[curMonster.x][curMonster.y] = MONSTER;
       }
    } else {
+      Hero& hero = *(state.hero);
       // Otherwise, the monster is not spawning
       if (curMonster.conditionTimers[Condition::SLEEPING] == 0) {
          if (curMonster.timer == 0) {
@@ -545,19 +540,19 @@ void monsterMove(Monster& curMonster) {
                int diffx = 0, diffy = 0;
 
                if (curMonster.conditionTimers[Condition::HALTED] > 0) {
-                  if (Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y) == 1.0) {
-                     if (state.hero->x > curMonster.x) diffx = 1;
-                     if (state.hero->x < curMonster.x) diffx = -1;
-                     if (state.hero->y > curMonster.y) diffy = 1;
-                     if (state.hero->y < curMonster.y) diffy = -1;
+                  if (Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y) == 1.0) {
+                     if (hero.pos.x > curMonster.x) diffx = 1;
+                     if (hero.pos.x < curMonster.x) diffx = -1;
+                     if (hero.pos.y > curMonster.y) diffy = 1;
+                     if (hero.pos.y < curMonster.y) diffy = -1;
                   }
                } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
-                  if (state.hero->x > curMonster.x) diffx = -1;
-                  if (state.hero->x < curMonster.x) diffx = 1;
-                  if (state.hero->y > curMonster.y) diffy = -1;
-                  if (state.hero->y < curMonster.y) diffy = 1;
+                  if (hero.pos.x > curMonster.x) diffx = -1;
+                  if (hero.pos.x < curMonster.x) diffx = 1;
+                  if (hero.pos.y > curMonster.y) diffy = -1;
+                  if (hero.pos.y < curMonster.y) diffy = 1;
                } else if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
-                  float heroDist = Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y);
+                  float heroDist = Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y);
                   float nearestMonsterDist = 500.0;
                   Monster* nearestMonster;
                   state.mapModel->computeFov(curMonster.x, curMonster.y);
@@ -572,13 +567,13 @@ void monsterMove(Monster& curMonster) {
                         }
                      }
                   }
-                  state.mapModel->computeFov(state.hero->x, state.hero->y);
+                  state.mapModel->computeFov(hero.pos.x, hero.pos.y);
                   if (heroDist < nearestMonsterDist && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (heroDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
-                        if (state.hero->x > curMonster.x) diffx = 1;
-                        if (state.hero->x < curMonster.x) diffx = -1;
-                        if (state.hero->y > curMonster.y) diffy = 1;
-                        if (state.hero->y < curMonster.y) diffy = -1;
+                        if (hero.pos.x > curMonster.x) diffx = 1;
+                        if (hero.pos.x < curMonster.x) diffx = -1;
+                        if (hero.pos.y > curMonster.y) diffy = 1;
+                        if (hero.pos.y < curMonster.y) diffy = -1;
                      } else {
                         diffx = Utils::randGen->getInt(-1, 1);
                         diffy = Utils::randGen->getInt(-1, 1);
@@ -594,16 +589,16 @@ void monsterMove(Monster& curMonster) {
                         diffy = Utils::randGen->getInt(-1, 1);
                      }
                   }
-               } else if (curMonster.angry && !state.hero->dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || state.hero->isAdjacent(curMonster.x, curMonster.y))) {
-                  if (curMonster.ranged /*&& !curMonster.maimed*/ && !state.hero->isAdjacent(curMonster.x, curMonster.y) && Utils::dist(curMonster.x, curMonster.y, state.hero->x, state.hero->y) <= curMonster.range && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
+               } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
+                  if (curMonster.ranged /*&& !curMonster.maimed*/ && !hero.isAdjacent(curMonster.x, curMonster.y) && Utils::dist(curMonster.x, curMonster.y, hero.pos.x, hero.pos.y) <= curMonster.range && state.mapModel->isInFov(curMonster.x, curMonster.y)) {
                      rangedAttack = true;
                   }
-                  if (state.hero->x > curMonster.x) diffx = 1;
-                  if (state.hero->x < curMonster.x) diffx = -1;
-                  if (state.hero->y > curMonster.y) diffy = 1;
-                  if (state.hero->y < curMonster.y) diffy = -1;
+                  if (hero.pos.x > curMonster.x) diffx = 1;
+                  if (hero.pos.x < curMonster.x) diffx = -1;
+                  if (hero.pos.y > curMonster.y) diffy = 1;
+                  if (hero.pos.y < curMonster.y) diffy = -1;
                } else {
-                  if (state.mapModel->isInFov(curMonster.x, curMonster.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || state.hero->isAdjacent(curMonster.x, curMonster.y))) {
+                  if (state.mapModel->isInFov(curMonster.x, curMonster.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.x, curMonster.y))) {
                      if (curMonster.symbol != '@' || curMonster.health != curMonster.maxhealth) {
                         curMonster.angry = true;
                      }
@@ -619,25 +614,25 @@ void monsterMove(Monster& curMonster) {
                   }
                }
                if (rangedAttack) {
-                  displayRangedAttack(state.hero->x, state.hero->y, curMonster.x, curMonster.y);
+                  displayRangedAttack(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y);
                   int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
-                  if (state.hero->shieldTimer == 0) {
+                  if (hero.shieldTimer == 0) {
                      if (damage < 0) damage = 0;
-                     state.hero->health -= damage;
+                     hero.health -= damage;
                      sprintf(charBuffer, "%d", damage);
                      addMessage("The " + curMonster.name + " " + curMonster.rangedName + " at the hero for " + charBuffer + " damage", MessageType::NORMAL);
-                     if (state.hero->health <= 0) {
-                        state.hero->dead = true;
+                     if (hero.health <= 0) {
+                        hero.dead = true;
                         addMessage("The hero has died!", MessageType::IMPORTANT);
                         drawScreen();
-                     } else if (state.hero->meditationTimer > 0) {
-                        state.hero->meditationTimer = 0;
+                     } else if (hero.meditationTimer > 0) {
+                        hero.meditationTimer = 0;
                         addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
                      }
                   } else {
-                     state.hero->shieldTimer -= curMonster.damage;
-                     if (state.hero->shieldTimer <= 0) {
-                        state.hero->shieldTimer = 0;
+                     hero.shieldTimer -= curMonster.damage;
+                     if (hero.shieldTimer <= 0) {
+                        hero.shieldTimer = 0;
                         addMessage("The shield is shattered by the " + curMonster.name + "'s attack!", MessageType::SPELL);
                         drawScreen();
                      } else {
@@ -649,9 +644,9 @@ void monsterMove(Monster& curMonster) {
                      state.hitMonster(curMonster.x, curMonster.y, damage);
                   }
                } else {
-                  if (curMonster.x+diffx == state.hero->x && curMonster.y+diffy == state.hero->y && curMonster.conditionTimers[Condition::ALLIED] == 0) {
-                     if (state.hero->dead) {
-                        state.hero->health -= curMonster.damage;
+                  if (curMonster.x+diffx == hero.pos.x && curMonster.y+diffy == hero.pos.y && curMonster.conditionTimers[Condition::ALLIED] == 0) {
+                     if (hero.dead) {
+                        hero.health -= curMonster.damage;
                         sprintf(charBuffer, "%d", curMonster.damage);
                         if (curMonster.symbol != '@') {
                            addMessage("The " + curMonster.name + " savages the hero's corpse", MessageType::NORMAL);
@@ -659,19 +654,19 @@ void monsterMove(Monster& curMonster) {
                      } else {
                         int damage = curMonster.damage - (int)ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED));
                         if (damage < 0) damage = 0;
-                        state.hero->health -= damage;
+                        hero.health -= damage;
                         sprintf(charBuffer, "%d", damage);
                         addMessage("The " + curMonster.name + " hits the hero for " + charBuffer + " damage", MessageType::NORMAL);
-                        if (state.hero->health <= 0) {
-                           state.hero->dead = true;
+                        if (hero.health <= 0) {
+                           hero.dead = true;
                            addMessage("The hero has died!", MessageType::IMPORTANT);
                            drawScreen();
-                        } else if (state.hero->meditationTimer > 0) {
-                           state.hero->meditationTimer = 0;
+                        } else if (hero.meditationTimer > 0) {
+                           hero.meditationTimer = 0;
                            addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
-                        } else if (&curMonster != state.hero->target && state.hero->target != nullptr) {
-                           if (Utils::dist(state.hero->x, state.hero->y, curMonster.x, curMonster.y) < Utils::dist(state.hero->x, state.hero->y, state.hero->target->x, state.hero->target->y)) {
-                              state.hero->target = &curMonster;
+                        } else if (&curMonster != hero.target && hero.target != nullptr) {
+                           if (Utils::dist(hero.pos.x, hero.pos.y, curMonster.x, curMonster.y) < Utils::dist(hero.pos.x, hero.pos.y, hero.target->x, hero.target->y)) {
+                              hero.target = &curMonster;
                            }
                         }
                         if (curMonster.maimed) {
@@ -839,25 +834,14 @@ void createSpellMenu() {
 
 }
 
-bool isEmptyPatch(int x, int y) {
-   bool result = false;
-   if (x > 0 && x < MAP_WIDTH && y > 0 && y < MAP_HEIGHT) {
-      result = state.map[x-1][y-1] == BLANK && state.map[x-1][y] == BLANK && state.map[x-1][y+1] == BLANK && state.map[x][y-1] == BLANK && state.map[x][y] == BLANK && state.map[x][y+1] == BLANK && state.map[x+1][y-1] == BLANK && state.map[x+1][y] == BLANK && state.map[x+1][y+1] == BLANK;
-   }
-   return result;
-}
-
-bool isEmptyPatch(const Position& pos) {
-   return isEmptyPatch(pos.x, pos.y);
-}
-
 void displayStatLine(int row) {
    using namespace std::string_literals;
 
    auto& console = *(TCODConsole::root);
+   Hero& hero = *(state.hero);
 
    // Print stats
-   if (state.hero->dead) {
+   if (hero.dead) {
       console.setDefaultForeground(TCODColor::black);
       console.setDefaultBackground(TCODColor::darkRed);
       {
@@ -868,22 +852,22 @@ void displayStatLine(int row) {
    } else {
       console.setDefaultForeground(TCODColor::white);
       console.print(13, row, "Hero health:"s);
-      console.setDefaultForeground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
+      console.setDefaultForeground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
       console.putChar(26, row, 195, TCOD_BKGND_NONE);
       console.putChar(32, row, 180, TCOD_BKGND_NONE);
-      console.setDefaultBackground(TCODColor(130-state.hero->health, (state.hero->health*12), (25*state.hero->health)));
+      console.setDefaultBackground(TCODColor(130-hero.health, (hero.health*12), (25*hero.health)));
       console.setDefaultForeground(TCODColor::black);
-      for (int i = 0; i < state.hero->health; i+=2) {
+      for (int i = 0; i < hero.health; i+=2) {
          console.putChar(27+(i/2), row, 224, TCOD_BKGND_SET);
       }
-      if (state.hero->items.contains(Item::healthCap)) {
+      if (hero.items.contains(Item::healthCap)) {
          console.setDefaultForeground(TCODColor(100, 200, 100));
          console.setDefaultBackground(TCODColor::black);
          console.putChar(31, row, 'X', TCOD_BKGND_SET);
       }
    }
    console.setDefaultForeground(
-      state.hero->inSpellRadius()
+      hero.inSpellRadius()
          ? TCODColor::white
          : TCODColor::red
    );
@@ -1660,23 +1644,26 @@ bool displaySpellMenu(char spellChar) {
 }
 
 bool castSpell(Spell chosenSpell) {
+   Hero& hero = *(state.hero);
+
    int spellCast = false;
    int direction;
    bool itemDropped = false;
    bool minePlaced = false;
+   
    switch (chosenSpell) {
       case Spell::PACIFISM:
          if (state.level < 10) {
-            if (state.hero->inSpellRadius()) {
-               if (state.hero->dead) {
+            if (hero.inSpellRadius()) {
+               if (hero.dead) {
                   addMessage("The hero is dead!", MessageType::SPELL);
                } else {
-                  state.hero->pacifismTimer = state.hero->items.contains(Item::magicResist)
+                  hero.pacifismTimer = hero.items.contains(Item::magicResist)
                      ? (PACIFISM_TIME/2)
                      : PACIFISM_TIME;
-                  state.hero->target = nullptr;
+                  hero.target = nullptr;
                   addMessage("The hero appears calmer!", MessageType::SPELL);
-                  state.hero->computePath();
+                  hero.computePath();
                }
                spellCast = true;
             } else {
@@ -1687,11 +1674,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SPEED:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               state.hero->hasteTimer = state.hero->items.contains(Item::magicResist)
+               hero.hasteTimer = hero.items.contains(Item::magicResist)
                   ? (SPEED_TIME/2)
                   : SPEED_TIME;
                addMessage("The hero becomes a blur!", MessageType::SPELL);
@@ -1702,12 +1689,12 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::HEAL:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead){
+         if (hero.inSpellRadius()) {
+            if (hero.dead){
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
                bool gained = false;
-               gained = state.hero->gainHealth(state.hero->items.contains(Item::magicResist) ? 1 : 3);
+               gained = hero.gainHealth(hero.items.contains(Item::magicResist) ? 1 : 3);
                if (gained) {
                   addMessage("The hero looks healthier!", MessageType::SPELL);
                } else {
@@ -1735,8 +1722,8 @@ bool castSpell(Spell chosenSpell) {
                   if (state.map[i][j] == WALL || state.map[i][j] == TRAP) {
                      state.map[i][j] = BLANK;
                      state.mapModel->setProperties(i, j, true, true);
-                     if (state.hero->target == nullptr) {
-                        state.hero->computePath();
+                     if (hero.target == nullptr) {
+                        hero.computePath();
                      }
                   }
                }
@@ -1778,11 +1765,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::MEDITATION:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               state.hero->meditationTimer = state.hero->items.contains(Item::magicResist)
+               hero.meditationTimer = hero.items.contains(Item::magicResist)
                   ? (MEDITATION_TIME / 2)
                   : MEDITATION_TIME;
                addMessage("The hero begins quiet introspection", MessageType::SPELL);
@@ -1793,16 +1780,16 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::CHARITY:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
                // Check for each item the hero might have
                for (int i = 0; i < ITEM_COUNT; i++) {
                   const Item curItem = static_cast<Item>(i);
-                  if (state.hero->items.contains(curItem)) {
+                  if (hero.items.contains(curItem)) {
                      // Take off the item
-                     state.hero->items.erase(curItem);
+                     hero.items.erase(curItem);
                      addMessage("The hero takes off "+ITEM_NAME.at(curItem), MessageType::SPELL);
                      itemDropped = true;
                      // Specific effects of taking off each item
@@ -1813,7 +1800,7 @@ bool castSpell(Spell chosenSpell) {
                            }
                            break;
                         case Item::rustedSword:
-                           state.hero->damage = 5;
+                           hero.damage = 5;
                         default:
                            break;
                      };
@@ -1822,7 +1809,7 @@ bool castSpell(Spell chosenSpell) {
                // If an item was dropped, the hero is healed
                if (itemDropped) {
                   addMessage("Hero: " + Hero::heroCharity[Utils::randGen->getInt(0, 4)], MessageType::HERO);
-                  state.hero->gainHealth(10);
+                  hero.gainHealth(10);
                   spellCast = true;
                } else {
                   addMessage("The hero is not wearing any treasure!", MessageType::SPELL);
@@ -1833,15 +1820,15 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SLOW:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               if (state.hero->slow) {
-                  state.hero->slow = false;
+               if (hero.slow) {
+                  hero.slow = false;
                   addMessage("The hero's actions speed up!", MessageType::SPELL);
                } else {
-                  state.hero->slow = true;
+                  hero.slow = true;
                   addMessage("The hero's actions slow down!", MessageType::SPELL);
                }
             }
@@ -1851,11 +1838,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::SHIELD:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               state.hero->shieldTimer = state.hero->items.contains(Item::magicResist)
+               hero.shieldTimer = hero.items.contains(Item::magicResist)
                   ? (SHIELD_TIME / 2)
                   : SHIELD_TIME;
                addMessage("A transclucent shield surrounds the hero!", MessageType::SPELL);
@@ -1866,11 +1853,11 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::REGENERATE:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               state.hero->regenTimer = state.hero->items.contains(Item::magicResist)
+               hero.regenTimer = hero.items.contains(Item::magicResist)
                   ? (REGEN_TIME / 2)
                   : REGEN_TIME;
                addMessage("You project some healing magic onto the hero!", MessageType::SPELL);
@@ -1881,20 +1868,20 @@ bool castSpell(Spell chosenSpell) {
          }
          break;
       case Spell::BLINK:
-         if (state.hero->inSpellRadius()) {
-            if (state.hero->dead) {
+         if (hero.inSpellRadius()) {
+            if (hero.dead) {
                addMessage("The hero is dead!", MessageType::SPELL);
             } else {
-               state.hero->blinking = true;
-               const auto limit = state.hero->items.contains(Item::magicResist)
+               hero.blinking = true;
+               const auto limit = hero.items.contains(Item::magicResist)
                   ? (BLINK_MOVES / 2)
                   : BLINK_MOVES;
                for (int i = 0; i < limit; ++i) {
-                  state.hero->move();
+                  hero.move();
                   drawScreen();
                   TCODSystem::sleepMilli(10);
                }
-               state.hero->blinking = false;
+               hero.blinking = false;
                addMessage("The hero's actions are almost instant!", MessageType::SPELL);
             }
             spellCast = true;
@@ -1918,8 +1905,8 @@ bool castSpell(Spell chosenSpell) {
                }
             }
             addMessage("A path is cleared for you!", MessageType::SPELL);
-            if (state.hero->target == nullptr) {
-               state.hero->computePath();
+            if (hero.target == nullptr) {
+               hero.computePath();
             }
             spellCast = true;
          }
@@ -2024,7 +2011,7 @@ bool castSpell(Spell chosenSpell) {
             }
             if (screenMade) {
                addMessage("A wall of cloud appears before you", MessageType::SPELL);
-               state.hero->computePath();
+               hero.computePath();
             } else {
                addMessage("The spell fizzles", MessageType::SPELL);
             }
@@ -2081,7 +2068,7 @@ bool castSpell(Spell chosenSpell) {
                }
             }
             if (fieldMade) {
-               state.hero->computePath();
+               hero.computePath();
                addMessage("An impassable field appears before you!", MessageType::SPELL);
             } else {
                addMessage("The spell fizzles", MessageType::SPELL);
@@ -2140,17 +2127,17 @@ bool castSpell(Spell chosenSpell) {
                         }
                         state.map[step1.x][step1.y] = BLANK;
                         state.map[temp.x][temp.y] = HERO;
-                        state.hero->x = temp.x; state.hero->y = temp.y;
-                        state.hero->timer = state.hero->wait;
+                        hero.pos.x = temp.x; hero.pos.y = temp.y;
+                        hero.timer = hero.wait;
                         if (trapSprung) {
-                           if (!state.hero->dead) {
+                           if (!hero.dead) {
                               addMessage("The hero is blown into the trap!", MessageType::SPELL);
-                              state.hero->health -= 4;
+                              hero.health -= 4;
                               state.map[step1.x][step1.y] = BLANK;
                               state.map[temp.x][temp.y] = HERO;
-                              state.hero->x = temp.x; state.hero->y = temp.y;
-                              if (state.hero->health <= 0) {
-                                 state.hero->dead = true;
+                              hero.pos.x = temp.x; hero.pos.y = temp.y;
+                              if (hero.health <= 0) {
+                                 hero.dead = true;
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
@@ -2159,11 +2146,11 @@ bool castSpell(Spell chosenSpell) {
                            } else {
                               state.map[step1.x][step1.y] = BLANK;
                               state.map[temp.x][temp.y] = HERO;
-                              state.hero->x = temp.x; state.hero->y = temp.y;
+                              hero.pos.x = temp.x; hero.pos.y = temp.y;
                               addMessage("The hero's corpse is blown into the trap!", MessageType::SPELL);
                            }
                         } else {
-                           if (!state.hero->dead) {
+                           if (!hero.dead) {
                               addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                            }
                         }
@@ -2181,11 +2168,11 @@ bool castSpell(Spell chosenSpell) {
                         if (state.map[temp.x][temp.y] == BLANK) {
                            state.map[temp.x][temp.y] = TRAP;
                         } else if (state.map[temp.x][temp.y] == HERO) {
-                           if (!state.hero->dead) {
+                           if (!hero.dead) {
                               addMessage("You blow a trap into the hero!", MessageType::SPELL);
-                              state.hero->health -= 4;
-                              if (state.hero->health <= 0) {
-                                 state.hero->dead = true;
+                              hero.health -= 4;
+                              if (hero.health <= 0) {
+                                 hero.dead = true;
                                  addMessage("The hero has died!", MessageType::IMPORTANT);
                                  drawScreen();
                               } else {
@@ -2309,25 +2296,23 @@ void displayRangedAttack(int x1, int y1, int x2, int y2) {
 }
 
 void generateEndBoss() {
-   int tempx = 0, tempy = 0;
-   while (state.map[tempx][tempy] != BLANK || Utils::dist(tempx, tempy, state.hero->x, state.hero->y) < 30) {
-      tempx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-      tempy = Utils::randGen->getInt(0, MAP_HEIGHT-1);
-   }
+   Hero& hero = *(state.hero);
+   Position bossPos = Utils::randomMapPosWithCondition(
+      [&hero](const auto& pos){return Utils::tileAt(state.map, pos) == BLANK && Utils::dist(pos, hero.pos) >= 30;}
+   );
    int boss = Utils::randGen->getInt(0, 2);
    if (boss == 0) {
-      state.addMonster("Master Summoner", '*', tempx, tempy, 20, 2, false, " ", 0.0f, 15, false); 
+      state.addMonster("Master Summoner", '*', bossPos.x, bossPos.y, 20, 2, false, " ", 0.0f, 15, false); 
       addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);
    } else if (boss == 1) {
-      state.addMonster("Noble Hero", '@', tempx, tempy, 30, 3, false, " ", 0.0f, 2, false); 
+      state.addMonster("Noble Hero", '@', bossPos.x, bossPos.y, 30, 3, false, " ", 0.0f, 2, false); 
       addMessage("Noble Hero: I have made it to the treasure first, my boastful rival.", MessageType::VILLAIN);
       addMessage("Noble Hero: I wish you no harm, do not force me to defend myself.", MessageType::VILLAIN);
    } else {
-      state.addMonster("Evil Mage", 'M', tempx, tempy, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
+      state.addMonster("Evil Mage", 'M', bossPos.x, bossPos.y, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
       addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
    }
-   state.hero->stairsx = tempx;
-   state.hero->stairsy = tempy;
+   hero.stairs = bossPos;
 }
 
 void showVictoryScreen() {

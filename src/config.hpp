@@ -193,6 +193,14 @@ struct Position {
       return {x+dx, y+dy};
    }
 
+   Position offset(const Position& rhs) const {
+      return {x+rhs.x, y+rhs.y};
+   }
+
+   bool operator==(const Position& rhs) const {
+      return x == rhs.x && y == rhs.y;
+   }
+
    Position directionOffset(int direction) const {
       int diffX = ((direction-1)%3)-1;
       int diffY = 1-((direction-1)/3);

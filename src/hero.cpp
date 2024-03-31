@@ -12,7 +12,7 @@ Hero::Hero(GameState& game, const MessageCallback& message, const RedrawCallback
 
 bool Hero::checkWin() const {
    bool result = false;
-   if (dest1x == -1 && dest2x == -1 && x == stairsx && y == stairsy && !dead) {
+   if (dest1.x == -1 && dest2.x == -1 && pos == stairs && !dead) {
       result = true;
    }
    return result;
@@ -27,32 +27,29 @@ void Hero::giveItem() {
    // Apply immediate effects of any item
    switch (itemFound) {
       case Item::scrollEarthquake:
-         for (int i =0; i < MAP_WIDTH; i++) {
+         for (int i = 0; i < MAP_WIDTH; i++) {
             for (int j = 0; j < MAP_HEIGHT; j++) {
-               if (game.map[i][j] == BLANK && Utils::randGen->getInt(0, 29) == 0) {
-                  game.map[i][j] = WALL;
+               Tile& testTile = Utils::tileAt(game.map, {i, j});
+               if (testTile == BLANK && Utils::randGen->getInt(0, 29) == 0) {
+                  testTile = WALL;
                   game.mapModel->setProperties(i, j, false, false);
-               } else if (game.map[i][j] == WALL && Utils::randGen->getInt(0, 10) == 0) {
-                  game.map[i][j] = BLANK;
+               } else if (testTile == WALL && Utils::randGen->getInt(0, 10) == 0) {
+                  testTile = BLANK;
                   game.mapModel->setProperties(i, j, true, true);
                }
             }
          }
          // Ensure the hero can get to all of his goals
          for (int j = 0; j < 2; j++) {
-            int srcX, srcY, destX, destY;
+            Position src, dest;
             if (j == 0) {
-               srcX = dest1x;
-               srcY = dest1y;
-               destX = dest2x;
-               destY = dest2y;
+               src = dest1;
+               dest = dest2;
             } else {
-               srcX = dest2x;
-               srcY = dest2y;
-               destX = stairsx;
-               destY = stairsy;
+               src = dest2;
+               dest = stairs;
             }
-            path.compute(srcX, srcY, destX, destY);
+            path.compute(src.x, src.y, dest.x, dest.y);
             int pathX = -1, pathY = -1;
             for (int i = 0; i < path.size(); i++) {
                path.get(i, &pathX, &pathY);
@@ -108,12 +105,12 @@ bool Hero::gainHealth(int amount) {
 
 
 void Hero::computePath() {
-   if (dest1x != -1) {
-      path.compute(x, y, dest1x, dest1y);
-   } else if (dest2x != -1) {
-      path.compute(x, y, dest2x, dest2y);
+   if (dest1.x != -1) {
+      path.compute(pos.x, pos.y, dest1.x, dest1.y);
+   } else if (dest2.x != -1) {
+      path.compute(pos.x, pos.y, dest2.x, dest2.y);
    } else {
-      path.compute(x, y, stairsx, stairsy);
+      path.compute(pos.x, pos.y, stairs.x, stairs.y);
    }
    pathstep = 0;
 }
@@ -124,27 +121,28 @@ bool Hero::move() {
       // If the hero is ready to move
       if (timer == 0 || hasteTimer > 0) {
          nextLevel = checkWin();
-         game.map[x][y] = BLANK;
-         int diffx = 0, diffy = 0;
+         Utils::tileAt(game.map, pos) = BLANK;
+         Position diff{0, 0};
          // If the hero can see the player
-         if (seeInvisibleTimer > 0 && Utils::dist(x, y, game.player.x, game.player.y) < 2 && game.mapModel->isInFov(x, y)) {
-            diffx = x-game.player.x;
-            diffy = y-game.player.y;
+         if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player) < 2 && game.mapModel->isInFov(pos.x, pos.y)) {
+            diff = pos.offset(-game.player.x, -game.player.y);
             message("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (game.illusion.x != -1 && game.mapModel->isInFov(game.illusion.x, game.illusion.y)) {
             // If the hero sees the illusion, it takes priority
             int ptx = 0, pty = 0;
-            bool reachable = path.compute(x, y, game.illusion.x, game.illusion.y); 
+            bool reachable = path.compute(pos.x, pos.y, game.illusion.x, game.illusion.y); 
             if (reachable) {
                target = nullptr;
                path.get(0, &ptx, &pty);
-               if (x > ptx) diffx = -1;
-               if (x < ptx) diffx = 1;
-               if (y > pty) diffy = -1;
-               if (y < pty) diffy = 1;
+               if (pos.x > ptx) diff.x = -1;
+               if (pos.x < ptx) diff.x = 1;
+               if (pos.y > pty) diff.y = -1;
+               if (pos.y < pty) diff.y = 1;
             } else {
-               diffx = Utils::randGen->getInt(-1, 1);
-               diffy = Utils::randGen->getInt(-1, 1);
+               diff = {
+                  Utils::randGen->getInt(-1, 1),
+                  Utils::randGen->getInt(-1, 1)
+               };
             }
          } else if (target == nullptr || pacifismTimer > 0) {
             // If the hero doesn't have a target, attempt to find one
@@ -154,16 +152,16 @@ bool Hero::move() {
             if (target != nullptr) {
                message("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                pathstep = 0;
-               path.compute(x, y, target->x, target->y); 
+               path.compute(pos.x, pos.y, target->x, target->y); 
             } else {
-               if (x == dest1x && y == dest1y) {
-                  game.map[dest1x][dest1y-1] = CHEST_OPEN;
+               if (pos == dest1) {
+                  Utils::tileAt(game.map, dest1.offset(0, -1)) = CHEST_OPEN;
                   giveItem();
-                  dest1x = -1; dest1y = -1;
-               } else if (dest1x == -1 && x == dest2x && y == dest2y) {
-                  game.map[dest2x][dest2y-1] = CHEST_OPEN;
+                  dest1 = {-1, -1};
+               } else if (dest1.x == -1 && pos == dest2) {
+                  Utils::tileAt(game.map, dest2.offset(0, -1)) = CHEST_OPEN;
                   giveItem();
-                  dest2x = -1; dest2y = -1;
+                  dest2 = {-1, -1};
                } else {
                   // If the hero doesn't have a path, give him one
                   if (path.isEmpty()) {
@@ -174,10 +172,10 @@ bool Hero::move() {
                   if (pathstep < path.size()) {
                      path.get(pathstep, &ptx, &pty);
                      pathstep++;
-                     if (x > ptx) diffx = -1;
-                     if (x < ptx) diffx = 1;
-                     if (y > pty) diffy = -1;
-                     if (y < pty) diffy = 1;
+                     if (pos.x > ptx) diff.x = -1;
+                     if (pos.x < ptx) diff.x = 1;
+                     if (pos.y > pty) diff.y = -1;
+                     if (pos.y < pty) diff.y = 1;
                   } else {
                      computePath();
                   }
@@ -186,33 +184,36 @@ bool Hero::move() {
          } else {
             // If the hero had an existing target, move to attack
             int ptx = 0, pty = 0;
-            bool reachable = path.compute(x, y, target->x, target->y); 
+            bool reachable = path.compute(pos.x, pos.y, target->x, target->y); 
             if (reachable) {
                path.get(0, &ptx, &pty);
-               if (x > ptx) diffx = -1;
-               if (x < ptx) diffx = 1;
-               if (y > pty) diffy = -1;
-               if (y < pty) diffy = 1;
+               if (pos.x > ptx) diff.x = -1;
+               if (pos.x < ptx) diff.x = 1;
+               if (pos.y > pty) diff.y = -1;
+               if (pos.y < pty) diff.y = 1;
             } else {
-               diffx = Utils::randGen->getInt(-1, 1);
-               diffy = Utils::randGen->getInt(-1, 1);
+               diff = {
+                  Utils::randGen->getInt(-1, 1),
+                  Utils::randGen->getInt(-1, 1)
+               };
             }
          }
-         if (diffx != 0 && diffy != 0) {
+         if (diff.x != 0 && diff.y != 0) {
             if (Utils::randGen->getInt(0, 1) == 0) {
-               diffx = 0;
+               diff.x = 0;
             } else {
-               diffy = 0;
+               diff.y = 0;
             }
          }
-         if (game.map[x+diffx][y+diffy] == MONSTER) {
+         Position dest = pos.offset(diff);
+         if (Utils::tileAt(game.map, dest) == MONSTER) {
             if (pacifismTimer > 0) {
-               game.mapModel->setProperties(x+diffx, y+diffy, true, false);
+               game.mapModel->setProperties(dest.x, dest.y, true, false);
                computePath();
-               game.mapModel->setProperties(x+diffx, y+diffy, true, true);
+               game.mapModel->setProperties(dest.x, dest.y, true, true);
                message("Hero: "+heroBump[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             } else {
-               target = game.findMonster(x+diffx, y+diffy);
+               target = game.findMonster(dest.x, dest.y);
                char buffer[20];
                sprintf(buffer, "%d", damage);
                message("The hero hits the " + target->name + " for " + buffer + " damage", MessageType::NORMAL);
@@ -220,7 +221,7 @@ bool Hero::move() {
                if (items.contains(Item::carelessGauntlets) && (target->health < damage)) {
                   selfDamage = damage - target->health;
                }
-               game.hitMonster(x+diffx, y+diffy, damage);
+               game.hitMonster(dest.x, dest.y, damage);
                if (blinking) {
                   gainHealth(2);
                }
@@ -243,37 +244,34 @@ bool Hero::move() {
                   }
                }
             }
-         } else if (game.map[x+diffx][y+diffy] == FIELD) {
+         } else if (Utils::tileAt(game.map, dest) == FIELD) {
             message("The hero is blocked by the forcefield", MessageType::SPELL);
             computePath();
-         } else if (game.map[x+diffx][y+diffy] == WALL) {
+         } else if (Utils::tileAt(game.map, dest) == WALL) {
             computePath();
-         } else if (game.map[x+diffx][y+diffy] == TRAP) {
+         } else if (Utils::tileAt(game.map, dest) == TRAP) {
             message("The hero falls into the trap!", MessageType::NORMAL);
             health -= 4;
-            game.map[x+diffx][y+diffx] = BLANK;
-            x += diffx;
-            y += diffy;
+            Utils::tileAt(game.map, dest) = BLANK;
+            pos = dest;
             if (health <= 0) {
                dead = true;
                message("The hero has died!", MessageType::IMPORTANT);
                redrawCallback();
             }
-         } else if (game.map[x+diffx][y+diffy] == ILLUSION) {
-            game.map[x+diffx][y+diffy] = BLANK;
+         } else if (Utils::tileAt(game.map, dest) == ILLUSION) {
+            Utils::tileAt(game.map, dest) = BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
             message("The hero disrupts the illusion", MessageType::SPELL);
             message("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
-         } else if (game.map[x+diffx][y+diffy] == BLANK) {
-            x += diffx;
-            y += diffy;
-         } else if (game.map[x+diffx][y+diffy] == PLAYER) {
-            std::swap(game.player.x, x);
-            std::swap(game.player.y, y);
+         } else if (Utils::tileAt(game.map, dest) == BLANK) {
+            pos = dest;
+         } else if (Utils::tileAt(game.map, dest) == PLAYER) {
+            std::swap(game.player, pos);
             message("The hero passes through you", MessageType::NORMAL);
             game.map[game.player.x][game.player.y] = PLAYER;
          }
-         game.map[x][y] = HERO;
+         Utils::tileAt(game.map, pos) = HERO;
          if ((items.contains(Item::slowBoots) && Utils::randGen->getInt(1, 2) == 1) || slow) {
             timer = wait*3/2;
          } else {
@@ -325,13 +323,15 @@ bool Hero::move() {
    if (summonMonsterTimer > 0) {
       summonMonsterTimer--;
       if (game.monsterList.size() < MAX_MONSTERS && summonMonsterTimer%15 == 1) {
-         int lx = 0, ly = 0;
-         while (game.map[lx][ly] != BLANK || Utils::dist(x, y, lx, ly) > 10) {
-            lx = Utils::randGen->getInt(0, MAP_WIDTH-1);
-            ly = Utils::randGen->getInt(0, MAP_HEIGHT-1);
+         Position l{0, 0};
+         while (Utils::tileAt(game.map, l) != BLANK || Utils::dist(pos, l) > 10) {
+            l = {
+               Utils::randGen->getInt(0, MAP_WIDTH-1),
+               Utils::randGen->getInt(0, MAP_HEIGHT-1)
+            };
          }
          int randomMonster = Utils::randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
-         game.addSpecifiedMonster(lx, ly, randomMonster, true);
+         game.addSpecifiedMonster(l.x, l.y, randomMonster, true);
       }
    }
    // Effects of the belt of trap attraction
@@ -342,30 +342,33 @@ bool Hero::move() {
             moved[i][j] = false;
          }
       }
-      for (int i = x-2; i <= x+2; i++) {
-         for (int j = y-2; j <= y+2; j++) {
-            if (i>=0 && i<MAP_WIDTH && j>=0 && j<MAP_HEIGHT) {
-               if (game.map[i][j] == TRAP && !moved[i-x+2][j-y+2]) {
-                  int dirX = x-i;
-                  int dirY = y-j;
-                  if ((abs(dirX)+abs(dirY))>=2) {
-                     if (abs(dirX) > abs(dirY)) {
-                        dirX /= 2;
-                        dirY = 0;
-                     } else if (abs(dirX) < abs(dirY)) {
-                        dirY /= 2;
-                        dirX = 0;
-                     } else if (abs(dirX)+abs(dirY) == 4){
-                        dirX /= 2;
-                        dirY /= 2;
+      for (int i = pos.x-2; i <= pos.x+2; i++) {
+         for (int j = pos.y-2; j <= pos.y+2; j++) {
+            Position testPos{i, j};
+            if (testPos.withinMap()) {
+               if (Utils::tileAt(game.map, testPos) == TRAP && !moved[i-pos.x+2][j-pos.y+2]) {
+                  Position dir = pos.offset(-i, -j);
+                  if ((abs(dir.x)+abs(dir.y))>=2) {
+                     if (abs(dir.x) > abs(dir.y)) {
+                        dir.x /= 2;
+                        dir.y = 0;
+                     } else if (abs(dir.x) < abs(dir.y)) {
+                        dir.y /= 2;
+                        dir.x = 0;
+                     } else if (abs(dir.x)+abs(dir.y) == 4){
+                        dir.x /= 2;
+                        dir.y /= 2;
                      }
                   }
-                  if (game.map[i+dirX][j+dirY] == BLANK) {
-                     game.map[i+dirX][j+dirY] = TRAP;
-                     game.map[i][j] = BLANK;
-                     moved[i+dirX-x+2][j+dirY-y+2] = true;
-                  } else if (game.map[i+dirX][j+dirY] == HERO) {
-                     game.map[i][j] = BLANK;
+                  Position trapPos = dir.offset(i, j);
+                  Tile& trapTile = Utils::tileAt(game.map, trapPos);
+                  Tile& testTile = Utils::tileAt(game.map, testPos);
+                  if (trapTile == BLANK) {
+                     trapTile = TRAP;
+                     testTile = BLANK;
+                     moved[i+dir.x-pos.x+2][j+dir.y-pos.y+2] = true;
+                  } else if (trapTile == HERO) {
+                     testTile = BLANK;
                      if (!dead) {
                         message("A trap is pulled onto the hero!", MessageType::NORMAL);
                         health -= 4;
@@ -377,9 +380,9 @@ bool Hero::move() {
                      } else {
                         message("A trap is pulled onto the hero's corpse!", MessageType::NORMAL);
                      }
-                  } else if (game.map[i+dirX][j+dirY] == MONSTER) {
-                     game.map[i][j] = BLANK;
-                     Monster* target = game.findMonster(i+dirX, j+dirY);
+                  } else if (trapTile == MONSTER) {
+                     testTile = BLANK;
+                     Monster* target = game.findMonster(dir.offset(i, j));
                      message("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
                      game.hitMonster(target->x, target->y, 4);
                   }
@@ -388,12 +391,12 @@ bool Hero::move() {
          }
       }
    }
-   game.mapModel->computeFov(x, y);
+   game.mapModel->computeFov(pos.x, pos.y);
    return nextLevel;
 }
 
 bool Hero::inSpellRadius() const {
-   return (Utils::dist(game.player.x, game.player.y, x, y) <= SPELL_RADIUS);
+   return Utils::dist(game.player, pos) <= SPELL_RADIUS;
 }
 
 bool Hero::isAdjacent(int x, int y) const {

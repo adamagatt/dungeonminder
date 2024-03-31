@@ -74,8 +74,6 @@ bool applyMonsterCondition(Condition, bool);
 void generateEndBoss();
 
 /** Utility */
-bool isEmptyPatch(int, int);
-bool isEmptyPatch(const Position& pos);
 int getDirection();
 TCOD_key_t getKeyPress();
 

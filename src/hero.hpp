@@ -40,8 +40,11 @@ class Hero {
    bool isAdjacent(int, int) const;
    bool inSpellRadius() const;
 
-   int x, y, wait, timer, health, damage;
-   int dest1x, dest1y, dest2x, dest2y, stairsx, stairsy;
+   Position pos;
+   Position dest1;
+   Position dest2;
+   Position stairs;
+   int wait, timer, health, damage;
    Monster* target;
    int pathstep;
    bool dead, slow, blinking;
