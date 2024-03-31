@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 
 #include "dungeon_minder.hpp"
+#include "position.hpp"
 #include "utils.hpp"
 
 #include <algorithm>

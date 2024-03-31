@@ -6,6 +6,7 @@
 #include "config.hpp"
 #include "game_state.hpp"
 #include "monster.hpp"
+#include "position.hpp"
 
 #include <unordered_set>
 

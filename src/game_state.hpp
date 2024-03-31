@@ -4,6 +4,7 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "position.hpp"
 
 #include <memory>
 #include <string>
