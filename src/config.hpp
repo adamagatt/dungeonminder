@@ -24,13 +24,13 @@ constexpr int MANA_BLIP_SIZE = 10;
 // Conditions
 const int CONDITION_COUNT = 7;
 enum class Condition {
-    SLEEPING = 0,
-    BLINDED = 1,
-    RAGED = 2,
-    ALLIED = 3,
-    WEAKENED = 4,
-    HALTED = 5,
-    FLEEING = 6
+    SLEEPING,
+    BLINDED,
+    RAGED,
+    ALLIED,
+    WEAKENED,
+    HALTED,
+    FLEEING
 };
 
 const std::unordered_map<Condition, int> CONDITION_TIMES {

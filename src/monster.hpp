@@ -13,6 +13,7 @@ class Monster {
    public:
    Monster();
    bool operator==(const Monster& other) const;
+   [[nodiscard]] bool affectedBy(Condition condition) const;
 
    std::string name;
    char symbol;

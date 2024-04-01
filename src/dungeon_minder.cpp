@@ -306,22 +306,22 @@ void monsterMove(Monster& curMonster) {
    } else {
       Hero& hero = *(state.hero);
       // Otherwise, the monster is not spawning
-      if (curMonster.conditionTimers[Condition::SLEEPING] == 0) {
+      if (!curMonster.affectedBy(Condition::SLEEPING)) {
          if (curMonster.timer == 0) {
             if (curMonster.symbol != '*') {
                bool rangedAttack = false;
                state.tileAt(curMonster.pos) = Tile::BLANK;
                int diffx = 0, diffy = 0;
 
-               if (curMonster.conditionTimers[Condition::HALTED] > 0) {
+               if (curMonster.affectedBy(Condition::HALTED)) {
                   if (Utils::dist(hero.pos, curMonster.pos) == 1.0) {
                      diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
                      diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                   }
-               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y)) {
+               } else if (curMonster.affectedBy(Condition::FLEEING) && state.isInFov(curMonster.pos)) {
                      diffx = Utils::signum(curMonster.pos.x - hero.pos.x);
                      diffy = Utils::signum(curMonster.pos.y - hero.pos.y);
-               } else if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
+               } else if (curMonster.affectedBy(Condition::RAGED) || curMonster.affectedBy(Condition::ALLIED)) {
                   float heroDist = Utils::dist(hero.pos, curMonster.pos);
                   float nearestMonsterDist = MAP_WIDTH + MAP_HEIGHT + 2;
                   Monster* nearestMonster;
@@ -336,8 +336,8 @@ void monsterMove(Monster& curMonster) {
                      }
                   }
                   state.map.model->computeFov(hero.pos.x, hero.pos.y);
-                  if (heroDist < nearestMonsterDist && curMonster.conditionTimers[Condition::ALLIED] == 0) {
-                     if (heroDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
+                  if (heroDist < nearestMonsterDist && !curMonster.affectedBy(Condition::ALLIED)) {
+                     if (heroDist == 1.0 || !curMonster.affectedBy(Condition::BLINDED)) {
                         diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
                         diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                      } else {
@@ -345,7 +345,7 @@ void monsterMove(Monster& curMonster) {
                         diffy = Utils::randGen->getInt(-1, 1);
                      }
                   } else {
-                     if (nearestMonsterDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
+                     if (nearestMonsterDist == 1.0 || !curMonster.affectedBy(Condition::BLINDED)) {
                         diffx = Utils::signum(nearestMonster->pos.x - curMonster.pos.x);
                         diffy = Utils::signum(nearestMonster->pos.y - curMonster.pos.y);
                      } else {
@@ -353,14 +353,14 @@ void monsterMove(Monster& curMonster) {
                         diffy = Utils::randGen->getInt(-1, 1);
                      }
                   }
-               } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
+               } else if (curMonster.angry && !hero.dead && (!curMonster.affectedBy(Condition::BLINDED) || hero.isAdjacent(curMonster.pos))) {
                   if (curMonster.ranged && !hero.isAdjacent(curMonster.pos) && Utils::dist(curMonster.pos, hero.pos) <= curMonster.range && state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y)) {
                      rangedAttack = true;
                   }
                   diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
                   diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                } else {
-                  if (state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
+                  if (state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y) && (!curMonster.affectedBy(Condition::BLINDED) || hero.isAdjacent(curMonster.pos))) {
                      if (curMonster.symbol != '@' || curMonster.health != curMonster.maxhealth) {
                         curMonster.angry = true;
                      }
@@ -410,7 +410,7 @@ void monsterMove(Monster& curMonster) {
                } else {
                   Position diffPos = curMonster.pos.offset(diffx, diffy);
                   Tile& diffTile = state.tileAt(diffPos);
-                  if (diffPos == hero.pos && curMonster.conditionTimers[Condition::ALLIED] == 0) {
+                  if (diffPos == hero.pos && !curMonster.affectedBy(Condition::ALLIED)) {
                      if (hero.dead) {
                         hero.health -= curMonster.damage;
                         if (curMonster.symbol != '@') {
@@ -441,7 +441,7 @@ void monsterMove(Monster& curMonster) {
                      }
                   } else if (diffTile == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
                      if (Monster* otherMonster = state.findMonster(diffPos); otherMonster != nullptr) {
-                        if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
+                        if (curMonster.affectedBy(Condition::RAGED) || curMonster.affectedBy(Condition::ALLIED)) {
                            char buffer[20];
                            sprintf(buffer, "%d", curMonster.damage);
                            state.addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +buffer + " damage", MessageType::NORMAL);
@@ -494,7 +494,7 @@ void monsterMove(Monster& curMonster) {
          curMonster.timer -= 1;
       } else {
          curMonster.conditionTimers[Condition::SLEEPING]--;
-         if (curMonster.conditionTimers[Condition::SLEEPING] == 0) {
+         if (!curMonster.affectedBy(Condition::SLEEPING)) {
             auto& text = CONDITION_END.at(Condition::SLEEPING);
             state.addMessage(text.first + curMonster.name + text.second, MessageType::SPELL);
          }

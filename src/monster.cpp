@@ -9,3 +9,8 @@ Monster::Monster() {
 bool Monster::operator==(const Monster& other) const {
     return name == other.name && pos == other.pos;
 }
+
+bool Monster::affectedBy(Condition condition) const {
+    auto it = conditionTimers.find(condition);
+    return it != conditionTimers.end() && it->second != 0;
+}

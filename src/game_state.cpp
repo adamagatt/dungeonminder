@@ -109,7 +109,7 @@ bool GameState::hitMonster(int x, int y, int amount) {
 
       return true;
 
-   } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
+   } else if (curMonster->affectedBy(Condition::HALTED)) {
       curMonster->conditionTimers[Condition::HALTED] = 0;
       addMessage("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
    }
@@ -139,7 +139,7 @@ void GameState::addMonster(const std::string& name, char symbol, int x, int y, i
    for (auto& [condition, timer] : curMonster.conditionTimers) {
       timer = 0;
    }
-   
+
    setTile({x, y}, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
 }
 
