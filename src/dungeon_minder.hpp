@@ -41,6 +41,7 @@ void displayRangedAttack(const Position& p1, const Position& p2);
 void drawBSP(TCODBsp*);
 
 /** Player */
+void presentUpgradeMenu();
 bool castSpell(char spellChar);
 bool effectSpell(Spell);
 

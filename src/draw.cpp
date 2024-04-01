@@ -204,7 +204,7 @@ void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
       console.print(MENU_X+3, MENU_Y+9, "monsters"s);
       console.print(MENU_X+3, MENU_Y+17, "Hero stands still,"s);
       console.print(MENU_X+3, MENU_Y+18, "increasing spell"s);
-      console.print(MENU_X+3, MENU_Y+19, "std::power generation"s);
+      console.print(MENU_X+3, MENU_Y+19, "power generation"s);
       console.print(MENU_X+3, MENU_Y+27, "Convert all found"s);
       console.print(MENU_X+3, MENU_Y+28, "treasure into hero"s);
       console.print(MENU_X+3, MENU_Y+29, "health"s);

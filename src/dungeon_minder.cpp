@@ -19,7 +19,7 @@ int main() {
 gameLoop:
    for (state.level = 1; state.level <= 10 && !TCODConsole::isWindowClosed(); state.level++) {
       if (state.level%3 == 0) {
-         draw.upgradeMenu(heroSpec, monsterSpec, worldSpec);
+         presentUpgradeMenu();
       }
       bool nextlevel = false;
       state.addMessage("Hero: " + Hero::heroEntry[Utils::randGen->getInt(0, 4)], MessageType::HERO);
@@ -380,7 +380,7 @@ void monsterMove(Monster& curMonster) {
                bool monsterKilled = false;
                if (rangedAttack) {
                   displayRangedAttack(hero.pos, curMonster.pos);
-                  int damage = curMonster.damage - static_cast<int>(ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED)));
+                  int damage = curMonster.damage - static_cast<int>(ceil(static_cast<double>(curMonster.conditionTimers[Condition::WEAKENED])/CONDITION_TIMES.at(Condition::WEAKENED)));
                   if (hero.shieldTimer == 0) {
                      if (damage < 0) damage = 0;
                      hero.health -= damage;
@@ -440,14 +440,15 @@ void monsterMove(Monster& curMonster) {
                         }
                      }
                   } else if (diffTile == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
-                     Monster* otherMonster = state.findMonster(diffPos);
-                     if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
-                        char buffer[20];
-                        sprintf(buffer, "%d", curMonster.damage);
-                        state.addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +buffer + " damage", MessageType::NORMAL);
-                        state.hitMonster(diffPos, curMonster.damage);
-                     } else {
-                        state.addMessage("The " + curMonster.name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
+                     if (Monster* otherMonster = state.findMonster(diffPos); otherMonster != nullptr) {
+                        if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
+                           char buffer[20];
+                           sprintf(buffer, "%d", curMonster.damage);
+                           state.addMessage("The " + curMonster.name + " hits the " + otherMonster->name + " for " +buffer + " damage", MessageType::NORMAL);
+                           state.hitMonster(diffPos, curMonster.damage);
+                        } else {
+                           state.addMessage("The " + curMonster.name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
+                        }
                      }
                   } else if (diffTile == Tile::PLAYER) {
                      std::swap(state.player, curMonster.pos);
@@ -553,7 +554,7 @@ void drawBSP(TCODBsp* curBSP) {
    }
 }
 
-void displayUpgradeMenu() {
+void presentUpgradeMenu() {
    state.addMessage("You are now experienced enough to specialise your magic!", MessageType::IMPORTANT);
 
    draw.upgradeMenu(heroSpec, monsterSpec, worldSpec);
