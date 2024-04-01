@@ -5,6 +5,8 @@
 
 #include "game_state.hpp"
 
+#include <memory>
+
 class Draw {
    public:
    Draw(const GameState& state);
@@ -25,7 +27,7 @@ class Draw {
    void showCommonSpellGUI();
    static void directionFrame(int x, int y, int width, int height);
 
-   TCODConsole* backboard;
+   std::unique_ptr<TCODConsole> backboard;
    const GameState& state;
 
    float floorNoise [MAP_WIDTH][MAP_HEIGHT];

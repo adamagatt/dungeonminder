@@ -28,7 +28,7 @@ class GameState {
    bool hitMonster(const Position& pos, int amount);
 
    Map map;
-   TCODMap *mapModel = new TCODMap(MAP_WIDTH,MAP_HEIGHT);
+   std::unique_ptr<TCODMap> mapModel = std::make_unique<TCODMap>(MAP_WIDTH, MAP_HEIGHT);
    
    int level;
    bool bossDead {false};

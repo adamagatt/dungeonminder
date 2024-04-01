@@ -47,7 +47,7 @@ void Draw::directionFrame(int x, int y, int width, int height) {
 
 void Draw::initialiseSpellMenu() {
    // Instantiate the spell menu
-   backboard = new TCODConsole(66, 35);
+   backboard = std::make_unique<TCODConsole>(66, 35);
 
    // Draw the edges
    backboard->setDefaultBackground(TCODColor(84, 40, 0));
@@ -77,7 +77,7 @@ void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
-   TCODConsole::blit(backboard, 0, 0, 66, 35, &console, MENU_X, MENU_Y);
+   TCODConsole::blit(backboard.get(), 0, 0, 66, 35, &console, MENU_X, MENU_Y);
 
    console.setDefaultForeground(TCODColor::darkGrey);
    console.print(05, 59, "m"s);
@@ -371,7 +371,7 @@ void Draw::upgradeMenu(int heroSpec, int monsterSpec, int worldSpec) {
    auto& console = *(TCODConsole::root);
 
    screen();
-   TCODConsole::blit(backboard, 0, 0, 66, 35, &console, MENU_X, MENU_Y);
+   TCODConsole::blit(backboard.get(), 0, 0, 66, 35, &console, MENU_X, MENU_Y);
 
    // Draw the borders
    showCommonSpellGUI();
@@ -625,7 +625,7 @@ void Draw::victoryScreen() {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
-   TCODConsole::blit(backboard, 0, 0, 66, 35, &console, MENU_X, MENU_Y);
+   TCODConsole::blit(backboard.get(), 0, 0, 66, 35, &console, MENU_X, MENU_Y);
 
    // Draw the borders
    console.setDefaultForeground(TCODColor(180, 100, 0));
