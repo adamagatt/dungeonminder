@@ -15,10 +15,9 @@ class Draw {
    void spellMenu(int heroSpec, int monsterSpec, int worldSpec);
    void upgradeMenu(int heroSpec, int monsterSpec, int worldSpec);
    void victoryScreen();
-   void messageHistory();
+   void showMessageHistory();
    void statLine(int row);
    static void directionScreen();
-
 
    void generateMapNoise();
 

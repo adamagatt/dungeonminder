@@ -919,7 +919,7 @@ void Draw::screen() {
    TCODConsole::flush();
 }
 
-void Draw::messageHistory() {
+void Draw::showMessageHistory() {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 

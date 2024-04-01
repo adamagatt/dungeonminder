@@ -193,7 +193,8 @@ gameLoop:
          } else if (key.c == 'q' || key.c == 'w' || key.c == 'e' || key.c == 'a' || key.c == 's' || key.c == 'd' || key.c == 'z' || key.c == 'x' || key.c == 'c') {
             turnTaken = castSpell(key.c);
          } else if (key.c == 'm') {
-            draw.messageHistory();
+            draw.showMessageHistory();
+            Utils::getKeyPress();
          } else if (key.c == 'v') {
             if (Utils::randGen->getInt(1, 2) == 1) {
                state.addMessage("You: HEY!", MessageType::SPELL);
@@ -562,13 +563,6 @@ void drawBSP(TCODBsp* curBSP) {
          }
       }
    }
-}
-
-void displayMessageHistory() {
-   draw.messageHistory();
-
-   // Wait for keyboard response
-   TCOD_key_t key = Utils::getKeyPress();
 }
 
 void displayUpgradeMenu() {
