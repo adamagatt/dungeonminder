@@ -1,7 +1,10 @@
 #include "game_state.hpp"
+
 #include "config.hpp"
 #include "hero.hpp"
 #include "monster.hpp"
+
+#include <algorithm>
 
 GameState::GameState() : hero{std::make_unique<Hero>(*this)} {
    using namespace std::string_literals;
@@ -16,6 +19,43 @@ void GameState::addMessage(const std::string& message, MessageType type) {
    }
 
    messageList.push_back({message, type});
+}
+
+
+const Tile& GameState::tileAt(const Position& pos) const {
+    return map.tiles[pos.x][pos.y];
+}
+
+Tile& GameState::tileAt(const Position& pos) {
+    return map.tiles[pos.x][pos.y];
+}
+
+void GameState::setTile(const Position& pos, Tile tile) {
+   tileAt(pos) = tile;
+   const auto& [visible, walkable] = tileProperties.at(tile);
+   map.model->setProperties(pos.x, pos.y, visible, walkable);
+}
+
+bool GameState::isInFov(int x, int y) const {
+   return map.model->isInFov(x, y);
+}
+
+bool GameState::isInFov(const Position& pos) const {
+   return isInFov(pos.x, pos.y);
+}
+
+bool GameState::isEmptyPatch(int x, int y) const {
+   return isEmptyPatch(Position(x, y));
+}
+
+bool GameState::isEmptyPatch(const Position& pos) const {
+   if (pos.x <= 0 || pos.x >= MAP_WIDTH || pos.y <= 0 || pos.y >= MAP_HEIGHT)
+      return false;
+
+   return std::ranges::all_of(
+      Utils::offsets,
+      [this, &pos](const auto& offset){return tileAt(pos.offset(offset)) == Tile::BLANK;} 
+   );
 }
 
 Monster* GameState::findMonster(const Position& p) {
@@ -36,7 +76,7 @@ Monster* GameState::findMonster(int x, int y) {
 Monster* GameState::heroFindMonster() {
    for (int i = 0; i < MAP_WIDTH; i++) {
       for (int j = 0; j < MAP_HEIGHT; j++) {
-         if (mapModel->isInFov(i, j) && map[i][j] == Tile::MONSTER) {
+         if (map.model->isInFov(i, j) && map.tiles[i][j] == Tile::MONSTER) {
             return findMonster(i, j);
          }
       }
@@ -59,7 +99,7 @@ bool GameState::hitMonster(int x, int y, int amount) {
          hero->target = nullptr;
          hero->computePath();
       }
-      Utils::tileAt(map, curMonster->pos) = Tile::BLANK;
+      tileAt(curMonster->pos) = Tile::BLANK;
       bool found = false;
 
       monsterList.erase(
@@ -99,12 +139,8 @@ void GameState::addMonster(const std::string& name, char symbol, int x, int y, i
    for (auto& [condition, timer] : curMonster.conditionTimers) {
       timer = 0;
    }
-   if (portalSpawned) {
-      map[x][y] = Tile::PORTAL;
-      mapModel->setProperties(x, y, true, false);
-   } else {
-      map[x][y] = Tile::MONSTER;
-   }
+   
+   setTile({x, y}, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
 }
 
 void GameState::addSpecifiedMonster(int tempx, int tempy, int number, bool portalSpawned) {
@@ -150,3 +186,16 @@ void GameState::addSpecifiedMonster(int tempx, int tempy, int number, bool porta
          break;
    }
 }
+
+const std::unordered_map<const Tile, const std::pair<bool, bool>> GameState::tileProperties {
+   {Tile::BLANK, {true, true}},
+   {Tile::WALL, {false, false}},
+   {Tile::MONSTER, {true, true}},
+   {Tile::STAIRS, {true, false}},
+   {Tile::STAIRS_UP, {true, false}},
+   {Tile::CHEST, {true, false}},
+   {Tile::CHEST_OPEN, {true, false}},
+   {Tile::FIELD, {false, false}},
+   {Tile::PORTAL, {true, false}},
+   {Tile::ILLUSION, {true, true}}
+};

@@ -150,7 +150,6 @@ constexpr std::array<std::array<std::array<Spell, 3>, 4>, 3> spellLists {{
    }}
 }};
 
-constexpr int MESSAGE_COUNT = 28;
 enum class MessageType {
    NORMAL,
    HERO,
@@ -180,11 +179,7 @@ enum class Tile {
     CHEST_OPEN,
     ILLUSION,
     FIELD,
-    PORTAL,
-    MARKER1,
-    MARKER2
+    PORTAL
 };
-
-using Map = std::array<std::array<Tile, MAP_HEIGHT>, MAP_WIDTH>;
 
 #endif

@@ -13,10 +13,10 @@
 
 class HeroPathCallback : public ITCODPathCallback {
    public :
-   HeroPathCallback(const Map& map) : map(map) { }
+   HeroPathCallback(const GameState& state) : state(state) { }
 
    float getWalkCost(int xFrom, int yFrom, int xTo, int yTo, void *_userData ) const {
-      const Tile& dest = Utils::tileAt(map, {xTo, yTo});
+      const Tile& dest = state.tileAt({xTo, yTo});
 
       float cost = 0.0f;
       switch(dest) {
@@ -37,7 +37,7 @@ class HeroPathCallback : public ITCODPathCallback {
    }
 
    private:
-   const Map& map;
+   const GameState& state;
 };
 
 class Hero {

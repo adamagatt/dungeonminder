@@ -755,11 +755,11 @@ void Draw::screen() {
    // Draw the walls
    for (int i = 0; i < MAP_WIDTH; i++) {
       for (int j = 0; j < MAP_HEIGHT; j++) {
-         const Tile& curTile = Utils::tileAt(state.map, {i, j});
+         const Tile& curTile = state.tileAt({i, j});
 
          int floorColour = static_cast<int>(floorNoise[i][j]*40);
          console.setDefaultBackground(TCODColor(floorColour, floorColour, floorColour));
-         if (!hero.dead && state.mapModel->isInFov(i, j)) {
+         if (!hero.dead && state.isInFov(i, j)) {
             float intensity = 150.0f/std::pow((std::pow((i-hero.pos.x), 2)+std::pow((j-hero.pos.y),2)), 0.3);
             console.setDefaultBackground(TCODColor(static_cast<int>(floorColour+intensity), static_cast<int>(floorColour+intensity), floorColour));
          }
@@ -804,16 +804,6 @@ void Draw::screen() {
             case Tile::PORTAL:
                console.setDefaultForeground(TCODColor::red);
                console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
-               break;
-            case Tile::MARKER1:
-               console.setDefaultForeground(TCODColor::red);
-               console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-               console.setDefaultForeground(TCODColor::grey);
-               break;
-            case Tile::MARKER2:
-               console.setDefaultForeground(TCODColor::lightBlue);
-               console.putChar(i+LEFT, j+TOP, 219, TCOD_BKGND_SET);
-               console.setDefaultForeground(TCODColor::grey);
                break;
             default:
                if (state.cloud[i][j] == 0) {

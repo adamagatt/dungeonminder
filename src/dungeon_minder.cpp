@@ -29,7 +29,7 @@ gameLoop:
       // Creates the map
       for (int i = 0; i < MAP_WIDTH; i++) {
          for (int j = 0; j < MAP_HEIGHT; j++) {
-            Utils::tileAt(state.map, {i, j}) = Tile::WALL;
+            state.tileAt({i, j}) = Tile::WALL;
             state.cloud[i][j] = 0;
             field[i][j] = 0;
          }
@@ -40,25 +40,23 @@ gameLoop:
       } else {
          mapBSP.splitRecursive(nullptr, 2, 5, 5, 1.5f, 1.5f);
       }
-      state.mapModel->clear();
+      state.map.model->clear();
       drawBSP(&mapBSP);
-      Utils::tileAt(state.map, {0, 0}) = Tile::WALL;
+      state.tileAt({0, 0}) = Tile::WALL;
 
       // Initialise the hero and player
       Position heroPos = Utils::randomMapPosWithCondition(
-         [](const auto& pos){return Utils::isEmptyPatch(state.map, pos);},
+         [](const auto& pos){return state.isEmptyPatch(pos);},
          2
       );
 
-      Position stairsPos = heroPos.offset(0, 1);
-      Utils::tileAt(state.map, stairsPos) = Tile::STAIRS_UP;
-      state.mapModel->setProperties(stairsPos.x, stairsPos.y+1, true, false);
+      state.setTile(heroPos.offset(0, 1), Tile::STAIRS_UP);
 
       state.player = heroPos.offset(0, -1);
       Hero& hero = *(state.hero);
-      Utils::tileAt(state.map, state.player) = Tile::PLAYER;
+      state.tileAt(state.player) = Tile::PLAYER;
       hero.pos = heroPos;
-      Utils::tileAt(state.map, hero.pos) = Tile::HERO;
+      state.tileAt(hero.pos) = Tile::HERO;
       hero.health = 10;
       hero.damage = 5;
       hero.timer = 1;
@@ -86,39 +84,36 @@ gameLoop:
       if (state.level < 10) {
          // Place the stairs
          Position stairsPos = Utils::randomMapPosWithCondition(
-            [&hero](const auto& pos){return Utils::isEmptyPatch(state.map, pos) && Utils::dist(hero.pos, pos) >= 20;}
+            [&hero](const auto& pos){return state.isEmptyPatch(pos) && Utils::dist(hero.pos, pos) >= 20;}
          );
-         Utils::tileAt(state.map, stairsPos) = Tile::STAIRS;
+         state.setTile(stairsPos, Tile::STAIRS);
          hero.stairs = stairsPos.offset(0, 1);
-         state.mapModel->setProperties(stairsPos.x, stairsPos.y, true, false);
-
+         
          // Place the chests
          Position chest1Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
-            return Utils::isEmptyPatch(state.map, pos) &&
+            return state.isEmptyPatch(pos) &&
                    Utils::dist(hero.pos, pos) >= 20 &&
                    Utils::dist(hero.stairs, pos) >= 20;
          });
-         Utils::tileAt(state.map, chest1Pos) = Tile::CHEST;
-         state.mapModel->setProperties(chest1Pos.x, chest1Pos.y, true, false);
+         state.setTile(chest1Pos, Tile::CHEST);
          hero.dest1 = chest1Pos.offset(0, 1);
 
          Position chest2Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
-            return Utils::isEmptyPatch(state.map, pos) &&
+            return state.isEmptyPatch(pos) &&
                    Utils::dist(hero.pos, pos) >= 20 &&
                    Utils::dist(hero.dest1, pos) >= 20 &&
                    Utils::dist(hero.stairs, pos) >= 20;
          });
-         Utils::tileAt(state.map, chest2Pos) = Tile::CHEST;
-         state.mapModel->setProperties(chest2Pos.x, chest2Pos.y, true, false);
+         state.setTile(chest2Pos, Tile::CHEST);
          hero.dest2 = chest2Pos.offset(0, 1);
       }
 
       // PLACE TRAPS
       for (int i = 0; i < 10; i++) {
          Position trapPos = Utils::randomMapPosWithCondition(
-            [](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK;}
+            [](const auto& pos){return state.tileAt(pos) == Tile::BLANK;}
          );
-         Utils::tileAt(state.map, trapPos) = Tile::TRAP;
+         state.tileAt(trapPos) = Tile::TRAP;
       }
 
       if (state.level < 10) {
@@ -129,7 +124,7 @@ gameLoop:
       }
 
       // Draw the map
-      state.mapModel->computeFov(hero.pos.x, hero.pos.y);
+      state.map.model->computeFov(hero.pos.x, hero.pos.y);
       draw.screen();
 
       // Game loop
@@ -173,8 +168,7 @@ gameLoop:
             int direction = Utils::getDirection();
             if (direction != 0) {
                Position target = state.player.directionOffset(direction);
-               Utils::tileAt(state.map, target) = Tile::WALL;
-               state.mapModel->setProperties(target.x, target.y, false, false);
+               state.setTile(target, Tile::WALL);
                hero.computePath();
             }
          } else if (key.vk == TCODK_F8) {
@@ -203,9 +197,9 @@ gameLoop:
             }
          }
          if (dest.withinMap()) {
-            Tile& destTile = Utils::tileAt(state.map, dest);
+            Tile& destTile = state.tileAt(dest);
             if (destTile == Tile::BLANK) {
-               Utils::tileAt(state.map, state.player) = Tile::BLANK;
+               state.tileAt(state.player) = Tile::BLANK;
                destTile = Tile::PLAYER;
                state.player = dest;
             } else if (destTile == Tile::MONSTER) {
@@ -271,14 +265,14 @@ gameLoop:
                   if (state.cloud[i][j] > 0) {
                      state.cloud[i][j]--;
                      if (state.cloud[i][j] == 0) {
-                        state.mapModel->setProperties(i, j, true, true);
+                        state.map.model->setProperties(i, j, true, true);
                      }
                   }
                   if (field[i][j] > 0) {
                      field[i][j]--;
                      if (field[i][j] == 0) {
-                        state.mapModel->setProperties(i, j, true, true);
-                        Utils::tileAt(state.map, {i, j}) = Tile::BLANK;
+                        state.map.model->setProperties(i, j, true, true);
+                        state.tileAt({i, j}) = Tile::BLANK;
                      }
                   }
                }
@@ -287,9 +281,9 @@ gameLoop:
          if (nextlevel && state.level < 10) {
             // Display the next state.level
             state.addMessage("Hero: " + Hero::heroExit[Utils::randGen->getInt(0, 4)], MessageType::HERO);
-            state.addMessage("The hero descends to the next state.level of the dungeon!", MessageType::IMPORTANT);
+            state.addMessage("The hero descends to the next level of the dungeon!", MessageType::IMPORTANT);
          } else {
-            state.mapModel->computeFov(hero.pos.x, hero.pos.y);
+            state.map.model->computeFov(hero.pos.x, hero.pos.y);
          }
          draw.screen();
       }
@@ -307,8 +301,7 @@ void monsterMove(Monster& curMonster) {
       curMonster.portalTimer--;
       // Once the monster has spawned
       if (curMonster.portalTimer == 0) {
-         state.mapModel->setProperties(curMonster.pos.x, curMonster.pos.y, true, true);
-         Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
+         state.setTile(curMonster.pos, Tile::MONSTER);
       }
    } else {
       Hero& hero = *(state.hero);
@@ -317,7 +310,7 @@ void monsterMove(Monster& curMonster) {
          if (curMonster.timer == 0) {
             if (curMonster.symbol != '*') {
                bool rangedAttack = false;
-               Utils::tileAt(state.map, curMonster.pos) = Tile::BLANK;
+               state.tileAt(curMonster.pos) = Tile::BLANK;
                int diffx = 0, diffy = 0;
 
                if (curMonster.conditionTimers[Condition::HALTED] > 0) {
@@ -325,16 +318,16 @@ void monsterMove(Monster& curMonster) {
                      diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
                      diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                   }
-               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y)) {
+               } else if (curMonster.conditionTimers[Condition::FLEEING] > 0 && state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y)) {
                      diffx = Utils::signum(curMonster.pos.x - hero.pos.x);
                      diffy = Utils::signum(curMonster.pos.y - hero.pos.y);
                } else if (curMonster.conditionTimers[Condition::RAGED] > 0 || curMonster.conditionTimers[Condition::ALLIED] > 0) {
                   float heroDist = Utils::dist(hero.pos, curMonster.pos);
                   float nearestMonsterDist = MAP_WIDTH + MAP_HEIGHT + 2;
                   Monster* nearestMonster;
-                  state.mapModel->computeFov(curMonster.pos.x, curMonster.pos.y);
+                  state.map.model->computeFov(curMonster.pos.x, curMonster.pos.y);
                   for (Monster& otherMon : state.monsterList) {
-                     if ((&otherMon != &curMonster) && state.mapModel->isInFov(otherMon.pos.x, otherMon.pos.y)) {
+                     if ((&otherMon != &curMonster) && state.map.model->isInFov(otherMon.pos.x, otherMon.pos.y)) {
                         float tempdist = Utils::dist(curMonster.pos, otherMon.pos);
                         if (tempdist < nearestMonsterDist) {
                            nearestMonsterDist = tempdist;
@@ -342,7 +335,7 @@ void monsterMove(Monster& curMonster) {
                         }
                      }
                   }
-                  state.mapModel->computeFov(hero.pos.x, hero.pos.y);
+                  state.map.model->computeFov(hero.pos.x, hero.pos.y);
                   if (heroDist < nearestMonsterDist && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (heroDist == 1.0 || curMonster.conditionTimers[Condition::BLINDED] == 0) {
                         diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
@@ -361,13 +354,13 @@ void monsterMove(Monster& curMonster) {
                      }
                   }
                } else if (curMonster.angry && !hero.dead && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
-                  if (curMonster.ranged && !hero.isAdjacent(curMonster.pos) && Utils::dist(curMonster.pos, hero.pos) <= curMonster.range && state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y)) {
+                  if (curMonster.ranged && !hero.isAdjacent(curMonster.pos) && Utils::dist(curMonster.pos, hero.pos) <= curMonster.range && state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y)) {
                      rangedAttack = true;
                   }
                   diffx = Utils::signum(hero.pos.x - curMonster.pos.x);
                   diffy = Utils::signum(hero.pos.y - curMonster.pos.y);
                } else {
-                  if (state.mapModel->isInFov(curMonster.pos.x, curMonster.pos.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
+                  if (state.map.model->isInFov(curMonster.pos.x, curMonster.pos.y) && (curMonster.conditionTimers[Condition::BLINDED] == 0 || hero.isAdjacent(curMonster.pos))) {
                      if (curMonster.symbol != '@' || curMonster.health != curMonster.maxhealth) {
                         curMonster.angry = true;
                      }
@@ -416,7 +409,7 @@ void monsterMove(Monster& curMonster) {
                   }
                } else {
                   Position diffPos = curMonster.pos.offset(diffx, diffy);
-                  Tile& diffTile = Utils::tileAt(state.map, diffPos);
+                  Tile& diffTile = state.tileAt(diffPos);
                   if (diffPos == hero.pos && curMonster.conditionTimers[Condition::ALLIED] == 0) {
                      if (hero.dead) {
                         hero.health -= curMonster.damage;
@@ -459,7 +452,7 @@ void monsterMove(Monster& curMonster) {
                   } else if (diffTile == Tile::PLAYER) {
                      std::swap(state.player, curMonster.pos);
                      state.addMessage("The " + curMonster.name + " passes through you", MessageType::NORMAL);
-                     Utils::tileAt(state.map, state.player) = Tile::PLAYER;
+                     state.tileAt(state.player) = Tile::PLAYER;
                   } else if (diffTile == Tile::TRAP) {
                      state.addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
                      curMonster.pos = diffPos;
@@ -474,12 +467,12 @@ void monsterMove(Monster& curMonster) {
                   }
                }
                if (!monsterKilled) {
-                  Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
+                  state.tileAt(curMonster.pos) = Tile::MONSTER;
                }
             } else {
                if (state.monsterList.size() < MAX_MONSTERS) {
                   Position l = Utils::randomMapPosWithCondition(
-                     [](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK;}
+                     [](const auto& pos){return state.tileAt(pos) == Tile::BLANK;}
                   );
                   state.addSpecifiedMonster(l.x, l.y, Utils::randGen->getInt(0, 12), true);
                }
@@ -517,18 +510,15 @@ void drawBSP(TCODBsp* curBSP) {
          int y2 = curBSP->y+curBSP->h-1;
          for (int i = x1+2; i <= x2-2; i++) {
             for (int j = y1+Utils::randGen->getInt(1, 2); j <= y2-Utils::randGen->getInt(1, 2); j++) {
-               Utils::tileAt(state.map, {i, j}) = Tile::BLANK;
-               state.mapModel->setProperties(i, j, true, true);
+               state.setTile({i, j}, Tile::BLANK);
             }
          }
          for (int j = y1+2; j <= y2-2; j++) {
             if (Utils::randGen->getInt(1, 2) == 1) {
-               Utils::tileAt(state.map, {x1+1, j}) = Tile::BLANK;
-               state.mapModel->setProperties(x1+1, j, true, true);
+               state.setTile({x1+1, j}, Tile::BLANK);
             }
             if (Utils::randGen->getInt(1, 2) == 1) {
-               Utils::tileAt(state.map, {x2-1, j}) = Tile::BLANK;
-               state.mapModel->setProperties(x2-1, j, true, true);
+               state.setTile({x2-1, j}, Tile::BLANK);
             }
          }
       } else {
@@ -544,8 +534,7 @@ void drawBSP(TCODBsp* curBSP) {
                x2 = temp;
             }
             for (int i = x1; i <= x2; i++) {
-               Utils::tileAt(state.map, {i, y}) = Tile::BLANK;
-               state.mapModel->setProperties(i, y, true, true);
+               state.setTile({i, y},  Tile::BLANK);
             }
          } else {
             int y1 = curBSP->getLeft()->y + curBSP->getLeft()->h/2;
@@ -557,8 +546,7 @@ void drawBSP(TCODBsp* curBSP) {
                y2 = temp;
             }
             for (int j = y1; j <= y2; j++) {
-               Utils::tileAt(state.map, {x, j}) = Tile::BLANK;
-               state.mapModel->setProperties(x, j, true, true);
+               state.setTile({x, j}, Tile::BLANK);
             }
          }
       }
@@ -795,9 +783,9 @@ bool effectSpell(Spell chosenSpell) {
          for (int i = state.player.x-1; i <= state.player.x+1; i++) {
             for (int j = state.player.y-1; j <= state.player.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
-                  if (Tile& curTile = Utils::tileAt(state.map, {i, j}); curTile == Tile::WALL || curTile == Tile::TRAP) {
-                     curTile = Tile::BLANK;
-                     state.mapModel->setProperties(i, j, true, true);
+                  Position curPos{i, j};
+                  if (Tile& curTile = state.tileAt(curPos); curTile == Tile::WALL || curTile == Tile::TRAP) {
+                     state.setTile(curPos, Tile::BLANK);
                      if (hero.target == nullptr) {
                         hero.computePath();
                      }
@@ -813,12 +801,12 @@ bool effectSpell(Spell chosenSpell) {
             for (int j = state.player.y-2; j <= state.player.y+2; j++) {
                int cloudDist = abs(state.player.x-i)+abs(state.player.y-j);
                if ((cloudDist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
-                  if (Utils::tileAt(state.map, {i, j}) != Tile::WALL) {
+                  if (state.tileAt({i, j}) != Tile::WALL) {
                      int newCloudLevel = CLOUD_TIME*(8-cloudDist)/8;
                      if (newCloudLevel > state.cloud[i][j]) {
                         state.cloud[i][j] = newCloudLevel;
                      }
-                     state.mapModel->setProperties(i, j, false, true);
+                     state.map.model->setProperties(i, j, false, true);
                   }
                }
             }
@@ -831,9 +819,9 @@ bool effectSpell(Spell chosenSpell) {
          direction = Utils::getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (target.withinMap() && Utils::tileAt(state.map,target) == Tile::BLANK) {
+            if (target.withinMap() && state.tileAt(target) == Tile::BLANK) {
                state.addMessage("You create a trap in the ground", MessageType::SPELL);
-               Utils::tileAt(state.map,target) = Tile::TRAP;
+               state.tileAt(target) = Tile::TRAP;
             } else {
                state.addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -973,9 +961,8 @@ bool effectSpell(Spell chosenSpell) {
             for (int i = 1; i <= 3; i++) {
                Position stepPos = state.player.offset(diffX*i, diffY*i);
                if (stepPos.withinMap()) {
-                  if (Tile& stepTile = Utils::tileAt(state.map, stepPos); stepTile == Tile::WALL || stepTile == Tile::TRAP) {
-                     stepTile = Tile::BLANK;
-                     state.mapModel->setProperties(stepPos.x, stepPos.y, true, true);
+                  if (Tile& stepTile = state.tileAt(stepPos); stepTile == Tile::WALL || stepTile == Tile::TRAP) {
+                     state.setTile(stepPos, Tile::BLANK);
                   }
                }
             }
@@ -993,7 +980,7 @@ bool effectSpell(Spell chosenSpell) {
                Utils::randGen->getInt(-2, 2)
             );
             if (temp.withinMap()) {
-               if (Tile& tempTile = Utils::tileAt(state.map, temp); tempTile == Tile::BLANK) {
+               if (Tile& tempTile = state.tileAt(temp); tempTile == Tile::BLANK) {
                   tempTile = Tile::TRAP;
                   minePlaced = true;
                }
@@ -1010,7 +997,7 @@ bool effectSpell(Spell chosenSpell) {
          direction = Utils::getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (Utils::tileAt(state.map, target) == Tile::MONSTER) {
+            if (state.tileAt(target) == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                state.addMessage("The " + targetMonster->name + " looks pained!", MessageType::SPELL);
                targetMonster->maimed = true;
@@ -1024,7 +1011,7 @@ bool effectSpell(Spell chosenSpell) {
          direction = Utils::getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (Utils::tileAt(state.map, target)  == Tile::MONSTER) {
+            if (state.tileAt(target)  == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                state.addMessage("A terrible snap comes from inside the " + targetMonster->name + "!", MessageType::SPELL);
                targetMonster->health = (targetMonster->health+1)/2;
@@ -1038,12 +1025,12 @@ bool effectSpell(Spell chosenSpell) {
          direction = Utils::getDirection();
          if (direction != 0) {
             Position target = state.player.directionOffset(direction);
-            if (target.withinMap() && Utils::tileAt(state.map, target) == Tile::BLANK ) {
+            if (target.withinMap() && state.tileAt(target) == Tile::BLANK ) {
                if (state.illusion.x != -1) {
-                  Utils::tileAt(state.map, state.illusion)  = Tile::BLANK;
+                  state.tileAt(state.illusion) = Tile::BLANK;
                }
                state.illusion = target;
-               Utils::tileAt(state.map, target) = Tile::ILLUSION;
+               state.tileAt(target) = Tile::ILLUSION;
             } else {
                state.addMessage("Without empty ground, the spell fizzles", MessageType::SPELL);
             }
@@ -1073,12 +1060,12 @@ bool effectSpell(Spell chosenSpell) {
                   int diff = abs(diffX-i)+abs(diffY-j);
                   if ((i != 0 || j != 0) && diff < 2) {
                      if (Position curr = state.player.offset(i, j); curr.withinMap()) {
-                        Tile& currTile = Utils::tileAt(state.map, curr);
+                        Tile& currTile = state.tileAt(curr);
                         if (currTile == Tile::TRAP || currTile == Tile::WALL) {
                            currTile = Tile::BLANK;
                         }
                         state.cloud[curr.x][curr.y] = (diff == 0 ? CLOUD_TIME : (CLOUD_TIME*7/8));
-                        state.mapModel->setProperties(curr.x, curr.y, false, true);
+                        state.map.model->setProperties(curr.x, curr.y, false, true);
                         screenMade = true;
                      }
                   }
@@ -1103,29 +1090,26 @@ bool effectSpell(Spell chosenSpell) {
             if (diffX == 0 || diffY == 0) {
                for (int i = -2; i <= 2; i++) {
                   curr = state.player.offset(diffX+(i*(1-abs(diffX))), diffY+(i*(1-abs(diffY))));
-                  if (Tile& currTile = Utils::tileAt(state.map, curr); currTile == Tile::BLANK) {
+                  if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     currTile = Tile::FIELD;
-                     state.mapModel->setProperties(curr.x, curr.y, false, false);
+                     state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
                for (int i = -1; i <= 1; i++) {
                   curr = state.player.offset(diffX*2+(i*(1-abs(diffX))), diffY*2+(i*(1-abs(diffY))));
-                  if (Tile& currTile = Utils::tileAt(state.map, curr); currTile == Tile::BLANK) {
+                  if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     currTile = Tile::FIELD;
-                     state.mapModel->setProperties(curr.x, curr.y, false, false);
+                     state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
             } else {
                for (int i = -1; i <= 1; i++) {
                   curr = state.player.offset(diffX-(i*diffX), diffY+(i*diffY));
-                  if (Tile& currTile = Utils::tileAt(state.map, curr); currTile == Tile::BLANK) {
+                  if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     currTile = Tile::FIELD;
-                     state.mapModel->setProperties(curr.x, curr.y, false, false);
+                     state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
@@ -1134,10 +1118,9 @@ bool effectSpell(Spell chosenSpell) {
                      static_cast<int>(diffX/2.0f-((i-1.5)*diffX)),
                      static_cast<int>(diffY/2.0f+((i-1.5)*diffY))
                   );
-                  if (Tile& currTile = Utils::tileAt(state.map, curr); currTile == Tile::BLANK) {
+                  if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
                      field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
-                     currTile = Tile::FIELD;
-                     state.mapModel->setProperties(curr.x, curr.y, false, false);
+                     state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
@@ -1158,11 +1141,11 @@ bool effectSpell(Spell chosenSpell) {
             for (int j = -1; j < 2; j++) {
                if (i != 0 || j != 0) {
                   Position step1 = state.player.offset(i, j);
-                  Tile& step1Tile = Utils::tileAt(state.map, step1);
+                  Tile& step1Tile = state.tileAt(step1);
                   Position step2 = state.player.offset(2*i, 2*j);
-                  Tile& step2Tile = Utils::tileAt(state.map, step2);
+                  Tile& step2Tile = state.tileAt(step2);
                   Position step3 = state.player.offset(3*i, 3*j);
-                  Tile& step3Tile = Utils::tileAt(state.map, step3);
+                  Tile& step3Tile = state.tileAt(step3);
                   Position temp{step1.x, step1.y};
                   bool trapSprung = false;
                   if (step1.withinMap() && step2.withinMap()) {
@@ -1183,7 +1166,7 @@ bool effectSpell(Spell chosenSpell) {
                         Monster* target = state.findMonster(step1);
                         target->timer = target->wait;
                         step1Tile = Tile::BLANK;
-                        Utils::tileAt(state.map, temp) = Tile::MONSTER;
+                        state.tileAt(temp) = Tile::MONSTER;
                         target->pos = temp;
                         if (trapSprung) {
                            state.addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
@@ -1204,7 +1187,7 @@ bool effectSpell(Spell chosenSpell) {
                            temp = step2;
                         }
                         step1Tile = Tile::BLANK;
-                        Utils::tileAt(state.map, temp) = Tile::HERO;
+                        state.tileAt(temp) = Tile::HERO;
                         hero.pos = temp;
                         hero.timer = hero.wait;
                         if (trapSprung) {
@@ -1212,7 +1195,7 @@ bool effectSpell(Spell chosenSpell) {
                               state.addMessage("The hero is blown into the trap!", MessageType::SPELL);
                               hero.health -= 4;
                               step1Tile = Tile::BLANK;
-                              Utils::tileAt(state.map, temp) = Tile::HERO;
+                              state.tileAt(temp) = Tile::HERO;
                               hero.pos.x = temp.x; hero.pos.y = temp.y;
                               if (hero.health <= 0) {
                                  hero.dead = true;
@@ -1222,7 +1205,7 @@ bool effectSpell(Spell chosenSpell) {
                               }
                            } else {
                               step1Tile = Tile::BLANK;
-                              Utils::tileAt(state.map, temp) = Tile::HERO;
+                              state.tileAt(temp) = Tile::HERO;
                               hero.pos = temp;
                               state.addMessage("The hero's corpse is blown into the trap!", MessageType::SPELL);
                            }
@@ -1242,7 +1225,7 @@ bool effectSpell(Spell chosenSpell) {
                            temp = step2;
                         }
                         step1Tile = Tile::BLANK;
-                        Tile& tempTile = Utils::tileAt(state.map, temp);
+                        Tile& tempTile = state.tileAt(temp);
                         if (tempTile == Tile::BLANK) {
                            tempTile = Tile::TRAP;
                         } else if (tempTile == Tile::HERO) {
@@ -1284,7 +1267,7 @@ void generateMonsters(int level, int amount) {
    for (int a = 0; a < 4; a++) {
       for (int i = 0; i < amount; i++) {
          temp = {0, 0};
-         while (Utils::tileAt(state.map, temp) != Tile::BLANK) {
+         while (state.tileAt(temp) != Tile::BLANK) {
             int x = (a/2 == 0)
                ? Utils::randGen->getInt(0, (MAP_WIDTH-1)/2)
                : Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
@@ -1319,7 +1302,7 @@ void displayRangedAttack(const Position& p1, const Position& p2) {
 void generateEndBoss() {
    Hero& hero = *(state.hero);
    Position bossPos = Utils::randomMapPosWithCondition(
-      [&hero](const auto& pos){return Utils::tileAt(state.map, pos) == Tile::BLANK && Utils::dist(pos, hero.pos) >= 30;}
+      [&hero](const auto& pos){return state.tileAt(pos) == Tile::BLANK && Utils::dist(pos, hero.pos) >= 30;}
    );
    int boss = Utils::randGen->getInt(0, 2);
    if (boss == 0) {
@@ -1342,7 +1325,7 @@ bool applyMonsterCondition(Condition curCondition, bool append) {
       return false;
 
    Position target = state.player.directionOffset(direction);
-   if (Utils::tileAt(state.map, target) == Tile::MONSTER) {
+   if (state.tileAt(target) == Tile::MONSTER) {
       Monster* targetMonster = state.findMonster(target);
       const auto& text = CONDITION_START.at(curCondition);
       state.addMessage(text.first + targetMonster->name + text.second, MessageType::SPELL);
