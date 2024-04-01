@@ -1,7 +1,47 @@
 #include "utils.hpp"
 
+#include <SDL2/SDL.h>
+
+#include "draw.hpp"
+
 #include <algorithm>
 #include <cmath>
+
+TCOD_key_t Utils::getKeyPress() {
+   TCOD_key_t key;
+   SDL_Event event;
+
+   for (; event.type != SDL_KEYDOWN; SDL_WaitEvent(&event)) {}
+   tcod::sdl2::process_event(event, key);  // Convert a SDL key to a libtcod key event, to help port older code.
+
+   return key;
+}
+
+int Utils::getDirection() {
+   Draw::directionScreen();
+
+   // Get user response
+   TCOD_key_t key = getKeyPress();
+   if (key.vk == TCODK_UP || key.vk == TCODK_KP8 || key.c == 'k') {
+      return 8;
+   } else if (key.vk == TCODK_DOWN || key.vk == TCODK_KP2 || key.c == 'j') {
+      return 2;
+   } else if (key.vk == TCODK_LEFT || key.vk == TCODK_KP4 || key.c == 'h') {
+      return 4;
+   } else if (key.vk == TCODK_RIGHT || key.vk == TCODK_KP6 || key.c == 'l') {
+      return 6;
+   } else if (key.vk == TCODK_KP7 || key.c == 'y') {
+      return 7;
+   } else if (key.vk == TCODK_KP9 || key.c == 'u') {
+      return 9;
+   } else if (key.vk == TCODK_KP3 || key.c == 'n') {
+      return 3;
+   } else if (key.vk == TCODK_KP1 || key.c == 'b') {
+      return 1;
+   }
+
+   return 0;
+}
 
 int Utils::signum(int num) {
     return (num > 0) ? 1 :
@@ -63,5 +103,13 @@ constexpr std::array<Position, 9> Utils::offsets {{
     {+1,  0},
     {+1, +1}
 }};
+
+Utils::WithBackgroundSet::WithBackgroundSet(TCODConsole& console) : console(console) {
+   console.setBackgroundFlag(TCOD_BKGND_SET);
+}
+
+Utils::WithBackgroundSet::~WithBackgroundSet() {
+   console.setBackgroundFlag(TCOD_BKGND_NONE);
+}
 
 TCODRandom* Utils::randGen = TCODRandom::getInstance();

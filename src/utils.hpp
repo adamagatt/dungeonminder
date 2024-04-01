@@ -13,6 +13,10 @@ namespace Utils {
 
     using PositionPredicate = std::function<bool(const Position& pos)>;
 
+    int getDirection();
+    TCOD_key_t getKeyPress();
+
+
     int signum(int num);
 
     Position randomMapPosition(int border = 0);
@@ -27,6 +31,15 @@ namespace Utils {
     float dist(Position pos1, Position pos2);
 
     extern const std::array<Position, 9> offsets;
+
+    class WithBackgroundSet {
+        public:
+        WithBackgroundSet(TCODConsole& console);
+        ~WithBackgroundSet();
+
+        private:
+        TCODConsole& console;
+    };
 }
 
 #endif

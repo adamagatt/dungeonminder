@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(DungeonMinder
     src/dungeon_minder.cpp
+    src/draw.cpp
     src/game_state.cpp
     src/hero.cpp
     src/monster.cpp

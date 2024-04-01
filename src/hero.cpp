@@ -5,11 +5,9 @@
 
 using namespace std::string_literals;
 
-Hero::Hero(GameState& game, const MessageCallback& message, const RedrawCallback& redrawCallback) :
+Hero::Hero(GameState& game) :
    game(game),
-   heroPathCallback(game.map),
-   message(message),
-   redrawCallback(redrawCallback)
+   heroPathCallback(game.map)
    { }
 
 bool Hero::checkWin() const {
@@ -24,8 +22,8 @@ void Hero::giveItem() {
    const int itemIdx = Utils::randGen->getInt(0, ITEM_COUNT-1);
    const Item itemFound = static_cast<Item>(itemIdx);
    // Display messages
-   message("The hero finds " + ITEM_NAME.at(itemFound) + "!", MessageType::IMPORTANT);
-   message("Hero: " + heroItem[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+   game.addMessage("The hero finds " + ITEM_NAME.at(itemFound) + "!", MessageType::IMPORTANT);
+   game.addMessage("Hero: " + heroItem[Utils::randGen->getInt(0, 9)], MessageType::HERO);
    // Apply immediate effects of any item
    switch (itemFound) {
       case Item::scrollEarthquake:
@@ -65,7 +63,7 @@ void Hero::giveItem() {
          computePath();
          break;
       case Item::scrollSeeInvisible:
-         message("The hero is temporarily able to see you!", MessageType::SPELL);
+         game.addMessage("The hero is temporarily able to see you!", MessageType::SPELL);
          seeInvisibleTimer = 20;
          break;
       case Item::scrollSummonMonsters:
@@ -128,7 +126,7 @@ bool Hero::move() {
          // If the hero can see the player
          if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player) < 2 && game.mapModel->isInFov(pos.x, pos.y)) {
             diff = pos.offset(-game.player.x, -game.player.y);
-            message("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+            game.addMessage("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (game.illusion.x != -1 && game.mapModel->isInFov(game.illusion.x, game.illusion.y)) {
             // If the hero sees the illusion, it takes priority
             int ptx = 0, pty = 0;
@@ -152,7 +150,7 @@ bool Hero::move() {
                target = game.heroFindMonster();
             }
             if (target != nullptr) {
-               message("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+               game.addMessage("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                pathstep = 0;
                path.compute(pos.x, pos.y, target->pos.x, target->pos.y); 
             } else {
@@ -214,12 +212,12 @@ bool Hero::move() {
                game.mapModel->setProperties(dest.x, dest.y, true, false);
                computePath();
                game.mapModel->setProperties(dest.x, dest.y, true, true);
-               message("Hero: "+heroBump[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+               game.addMessage("Hero: "+heroBump[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             } else {
                target = game.findMonster(dest.x, dest.y);
                char buffer[20];
                sprintf(buffer, "%d", damage);
-               message("The hero hits the " + target->name + " for " + buffer + " damage", MessageType::NORMAL);
+               game.addMessage("The hero hits the " + target->name + " for " + buffer + " damage", MessageType::NORMAL);
                int selfDamage = 0;
                if (items.contains(Item::carelessGauntlets) && (target->health < damage)) {
                   selfDamage = damage - target->health;
@@ -232,46 +230,44 @@ bool Hero::move() {
                   if (selfDamage > 1) {
                      char buffer[20];
                      sprintf(buffer, "%d", selfDamage/2);
-                     message("The hero suffers "s + buffer + " damage from the effort!", MessageType::NORMAL);
+                     game.addMessage("The hero suffers "s + buffer + " damage from the effort!", MessageType::NORMAL);
                      health -= selfDamage;
                      if (health <= 0) {
                         dead = true;
-                        message("The hero has died!", MessageType::IMPORTANT);
-                        redrawCallback();
+                        game.addMessage("The hero has died!", MessageType::IMPORTANT);
                      }
 
                   }
                   if (!dead) {
-                     message("Hero: "+heroKills[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+                     game.addMessage("Hero: "+heroKills[Utils::randGen->getInt(0, 9)], MessageType::HERO);
                      computePath();
                   }
                }
             }
          } else if (destTile == Tile::FIELD) {
-            message("The hero is blocked by the forcefield", MessageType::SPELL);
+            game.addMessage("The hero is blocked by the forcefield", MessageType::SPELL);
             computePath();
          } else if (destTile == Tile::WALL) {
             computePath();
          } else if (destTile == Tile::TRAP) {
-            message("The hero falls into the trap!", MessageType::NORMAL);
+            game.addMessage("The hero falls into the trap!", MessageType::NORMAL);
             health -= 4;
             destTile = Tile::BLANK;
             pos = dest;
             if (health <= 0) {
                dead = true;
-               message("The hero has died!", MessageType::IMPORTANT);
-               redrawCallback();
+               game.addMessage("The hero has died!", MessageType::IMPORTANT);
             }
          } else if (destTile == Tile::ILLUSION) {
             destTile = Tile::BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
-            message("The hero disrupts the illusion", MessageType::SPELL);
-            message("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+            game.addMessage("The hero disrupts the illusion", MessageType::SPELL);
+            game.addMessage("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (destTile == Tile::BLANK) {
             pos = dest;
          } else if (destTile == Tile::PLAYER) {
             std::swap(game.player, pos);
-            message("The hero passes through you", MessageType::NORMAL);
+            game.addMessage("The hero passes through you", MessageType::NORMAL);
             Utils::tileAt(game.map, game.player) = Tile::PLAYER;
          }
          Utils::tileAt(game.map, pos) = Tile::HERO;
@@ -283,20 +279,19 @@ bool Hero::move() {
          if (hasteTimer != 0) {
             if (hasteTimer > 0) hasteTimer--;
             if (hasteTimer == 0) {
-               message("The hero resumes normal speed", MessageType::SPELL);
+               game.addMessage("The hero resumes normal speed", MessageType::SPELL);
             }
          }
          if (shieldTimer != 0) { 
             shieldTimer--;
             if (shieldTimer == 0) {
-               message("The hero's magical shield fades", MessageType::SPELL);
-               redrawCallback();
+               game.addMessage("The hero's magical shield fades", MessageType::SPELL);
             }
          }
          if (seeInvisibleTimer > 0) {
             seeInvisibleTimer--;
             if (seeInvisibleTimer == 0) {
-               message("The hero is no longer able to see you", MessageType::SPELL);
+               game.addMessage("The hero is no longer able to see you", MessageType::SPELL);
             }
          }
          if (regenTimer != 0) {
@@ -305,21 +300,21 @@ bool Hero::move() {
                gainHealth(1);
             }
             if (regenTimer == 0) {
-               message("Your healing magic is exhausted", MessageType::SPELL);
+               game.addMessage("Your healing magic is exhausted", MessageType::SPELL);
             }
          }
       }
       if (pacifismTimer > 0) {
          pacifismTimer--;
          if (pacifismTimer == 0) {
-            message("The hero begins looking for enemies", MessageType::SPELL);
+            game.addMessage("The hero begins looking for enemies", MessageType::SPELL);
          }
       }
       timer -= 1;
    } else {
       meditationTimer--;
       if (meditationTimer == 0) {
-         message("His mind cleared, the hero picks up his equipment", MessageType::SPELL);
+         game.addMessage("His mind cleared, the hero picks up his equipment", MessageType::SPELL);
       }
    }
    // Effects of the summon monster scroll
@@ -373,20 +368,19 @@ bool Hero::move() {
                   } else if (trapTile == Tile::HERO) {
                      testTile = Tile::BLANK;
                      if (!dead) {
-                        message("A trap is pulled onto the hero!", MessageType::NORMAL);
+                        game.addMessage("A trap is pulled onto the hero!", MessageType::NORMAL);
                         health -= 4;
                         if (health <= 0) {
                            dead = true;
-                           message("The hero has died!", MessageType::IMPORTANT);
-                           redrawCallback();
+                           game.addMessage("The hero has died!", MessageType::IMPORTANT);
                         }
                      } else {
-                        message("A trap is pulled onto the hero's corpse!", MessageType::NORMAL);
+                        game.addMessage("A trap is pulled onto the hero's corpse!", MessageType::NORMAL);
                      }
                   } else if (trapTile == Tile::MONSTER) {
                      testTile = Tile::BLANK;
                      Monster* target = game.findMonster(dir.offset(i, j));
-                     message("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
+                     game.addMessage("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
                      game.hitMonster(target->pos, 4);
                   }
                }

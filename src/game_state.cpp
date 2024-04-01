@@ -3,10 +3,28 @@
 #include "hero.hpp"
 #include "monster.hpp"
 
-GameState::GameState(const MessageCallback& message, const RedrawCallback& redrawCallback) :
-    message(message),
-    hero{std::make_unique<Hero>(*this, message, redrawCallback)}
-{ }
+GameState::GameState() :
+    hero{std::make_unique<Hero>(*this)}
+{
+   // Initialise messageList
+   for (int i = 0; i < MESSAGE_COUNT-2; i++) {
+      messageList[i] = "";
+      messageType[i] = MessageType::NORMAL;
+   }
+   messageList[MESSAGE_COUNT-2] = "Welcome to the game!";
+   messageType[MESSAGE_COUNT-2] = MessageType::IMPORTANT;
+   messageList[MESSAGE_COUNT-1] = "";
+   messageType[MESSAGE_COUNT-1] = MessageType::NORMAL;
+}
+
+void GameState::addMessage(const std::string& message, MessageType type) {
+   for (int i = 0; i < MESSAGE_COUNT-1; i++) {
+      messageList[i] = messageList[i+1];
+      messageType[i] = messageType[i+1];
+   }
+   messageList[MESSAGE_COUNT-1] = message;
+   messageType[MESSAGE_COUNT-1] = type;
+}
 
 Monster* GameState::findMonster(const Position& p) {
    return findMonster(p.x, p.y);
@@ -44,7 +62,7 @@ void GameState::hitMonster(int x, int y, int amount) {
       if (curMonster->symbol == '*' || curMonster->symbol=='M' || curMonster->symbol=='@') {
          bossDead = true;
       }
-      message("The " + curMonster->name + " dies!", MessageType::NORMAL);
+      addMessage("The " + curMonster->name + " dies!", MessageType::NORMAL);
       if (hero->target == curMonster) {
          hero->target = nullptr;
          hero->computePath();
@@ -59,7 +77,7 @@ void GameState::hitMonster(int x, int y, int amount) {
 
    } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
       curMonster->conditionTimers[Condition::HALTED] = 0;
-      message("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
+      addMessage("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
    }
 }
 

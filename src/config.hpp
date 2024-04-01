@@ -7,8 +7,8 @@
 #include <unordered_map>
 #include <string>
 
-constexpr int menuX = 7;
-constexpr int menuY = 7;
+constexpr int MENU_X = 7;
+constexpr int MENU_Y = 7;
 constexpr int TOP = 2;
 constexpr int LEFT = 4;
 constexpr int BOTTOM = 46;
@@ -18,6 +18,8 @@ constexpr int MAP_HEIGHT = BOTTOM-TOP+1;
 
 constexpr int MAX_MONSTERS = 20;
 constexpr int PORTAL_TIME = 20;
+
+constexpr int MANA_BLIP_SIZE = 10;
 
 // Conditions
 const int CONDITION_COUNT = 7;
