@@ -3,27 +3,19 @@
 #include "hero.hpp"
 #include "monster.hpp"
 
-GameState::GameState() :
-    hero{std::make_unique<Hero>(*this)}
-{
-   // Initialise messageList
-   for (int i = 0; i < MESSAGE_COUNT-2; i++) {
-      messageList[i] = "";
-      messageType[i] = MessageType::NORMAL;
-   }
-   messageList[MESSAGE_COUNT-2] = "Welcome to the game!";
-   messageType[MESSAGE_COUNT-2] = MessageType::IMPORTANT;
-   messageList[MESSAGE_COUNT-1] = "";
-   messageType[MESSAGE_COUNT-1] = MessageType::NORMAL;
+GameState::GameState() : hero{std::make_unique<Hero>(*this)} {
+   using namespace std::string_literals;
+
+   addMessage("Welcome to the game!"s, MessageType::IMPORTANT);
+   addMessage(""s, MessageType::NORMAL);
 }
 
 void GameState::addMessage(const std::string& message, MessageType type) {
-   for (int i = 0; i < MESSAGE_COUNT-1; i++) {
-      messageList[i] = messageList[i+1];
-      messageType[i] = messageType[i+1];
+   if (messageList.size() == MESSAGE_COUNT) {
+      messageList.pop_front();
    }
-   messageList[MESSAGE_COUNT-1] = message;
-   messageType[MESSAGE_COUNT-1] = type;
+
+   messageList.push_back({message, type});
 }
 
 Monster* GameState::findMonster(const Position& p) {

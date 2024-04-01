@@ -6,6 +6,7 @@
 #include "config.hpp"
 #include "position.hpp"
 
+#include <list>
 #include <memory>
 #include <string>
 #include <vector>
@@ -44,8 +45,12 @@ class GameState {
    int cloud [MAP_WIDTH][MAP_HEIGHT];
    Position illusion;
 
-   std::array<std::string, MESSAGE_COUNT> messageList;
-   std::array<MessageType, MESSAGE_COUNT> messageType;
+   struct Message {
+      std::string text;
+      MessageType type;
+   };
+
+   std::list<Message> messageList;
 };
 
 #endif

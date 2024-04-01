@@ -5,6 +5,7 @@
 #include "utils.hpp"
 
 #include <cmath>
+#include <iterator>
 
 Draw::Draw(const GameState& state) : state(state) {
    // Initialise the spell menu
@@ -863,9 +864,12 @@ void Draw::screen() {
    statLine(BOTTOM+2);
 
    // Print messages
-   for (int i = MESSAGE_COUNT-8; i < MESSAGE_COUNT; i++) {
-      console.setDefaultForeground(MESSAGE_COLOR.at(state.messageType[i]));
-      console.print(3, BOTTOM - 16+i, state.messageList[i]);
+   auto it = state.messageList.size() <= 8
+      ? state.messageList.begin()
+      : std::prev(state.messageList.end(), 8);
+   for (int i = 0; it != state.messageList.end(); ++it, ++i) {
+      console.setDefaultForeground(MESSAGE_COLOR.at(it->type));
+      console.print(3, 50+i, it->text);
    }
 
    if (hero.dead) {
@@ -957,9 +961,10 @@ void Draw::showMessageHistory() {
    statLine(28);
 
    // Display the messages
-   for (int i = 0; i < MESSAGE_COUNT; i++) {
-      console.setDefaultForeground(MESSAGE_COLOR.at(state.messageType[i]));
-      console.print(3, 30+i, state.messageList[i]);
+   int i = 0;
+   for (auto it = state.messageList.begin(); it != state.messageList.end(); ++it, ++i) {
+      console.setDefaultForeground(MESSAGE_COLOR.at(it->type));
+      console.print(3, 30+i, it->text);
    }
 
    // Flush the root console
