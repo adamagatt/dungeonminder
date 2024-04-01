@@ -52,10 +52,10 @@ Monster* GameState::heroFindMonster() {
    return nullptr;
 }
 
-void GameState::hitMonster(int x, int y, int amount) {
+bool GameState::hitMonster(int x, int y, int amount) {
    Monster* curMonster = findMonster(x, y);
    if (curMonster == nullptr)
-      return;
+      return false;
 
    curMonster->health -= amount;
    if (curMonster->health <= 0) {
@@ -75,14 +75,17 @@ void GameState::hitMonster(int x, int y, int amount) {
          monsterList.end()
       );
 
+      return true;
+
    } else if (curMonster->conditionTimers[Condition::HALTED] > 0) {
       curMonster->conditionTimers[Condition::HALTED] = 0;
       addMessage("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
    }
+   return false;
 }
 
-void GameState::hitMonster(const Position& pos, int amount) {
-   hitMonster(pos.x, pos.y, amount);
+bool GameState::hitMonster(const Position& pos, int amount) {
+   return hitMonster(pos.x, pos.y, amount);
 }
 
 void GameState::addMonster(const std::string& name, char symbol, int x, int y, int health, int damage, bool ranged, const std::string& rangedName, float range, int wait, bool portalSpawned) {

@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cmath>
-#include <iostream>
 
 // Main Method
 int main() {
@@ -291,6 +290,7 @@ gameLoop:
          } else {
             state.mapModel->computeFov(hero.pos.x, hero.pos.y);
          }
+         draw.screen();
       }
    }
    draw.screen();
@@ -381,6 +381,9 @@ void monsterMove(Monster& curMonster) {
                      diffy = 0;
                   }
                }
+
+               
+               bool monsterKilled = false;
                if (rangedAttack) {
                   displayRangedAttack(hero.pos, curMonster.pos);
                   int damage = curMonster.damage - static_cast<int>(ceil((double)curMonster.conditionTimers[Condition::WEAKENED]/CONDITION_TIMES.at(Condition::WEAKENED)));
@@ -408,7 +411,7 @@ void monsterMove(Monster& curMonster) {
                   }
                   if (curMonster.maimed) {
                      state.addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                     state.hitMonster(curMonster.pos, damage);
+                     monsterKilled = state.hitMonster(curMonster.pos, damage);
                   }
                } else {
                   Position diffPos = curMonster.pos.offset(diffx, diffy);
@@ -439,7 +442,7 @@ void monsterMove(Monster& curMonster) {
                         }
                         if (curMonster.maimed) {
                            state.addMessage("The "+curMonster.name+" suffers from the exertion!", MessageType::NORMAL);
-                           state.hitMonster(curMonster.pos, damage);
+                           monsterKilled = state.hitMonster(curMonster.pos, damage);
                         }
                      }
                   } else if (diffTile == Tile::MONSTER && (diffx != 0 || diffy != 0)) {
@@ -458,9 +461,9 @@ void monsterMove(Monster& curMonster) {
                      Utils::tileAt(state.map, state.player) = Tile::PLAYER;
                   } else if (diffTile == Tile::TRAP) {
                      state.addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
-                     diffTile = Tile::BLANK;
                      curMonster.pos = diffPos;
-                     state.hitMonster(curMonster.pos, 4);
+                     diffTile = Tile::MONSTER;
+                     monsterKilled = state.hitMonster(curMonster.pos, 4);
                   } else if (diffTile == Tile::ILLUSION) {
                      diffTile = Tile::BLANK;
                      state.illusion = {1, -1};
@@ -469,7 +472,9 @@ void monsterMove(Monster& curMonster) {
                      curMonster.pos = diffPos;
                   }
                }
-               Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
+               if (!monsterKilled) {
+                  Utils::tileAt(state.map, curMonster.pos) = Tile::MONSTER;
+               }
             } else {
                if (state.monsterList.size() < MAX_MONSTERS) {
                   Position l = Utils::randomMapPosWithCondition(
