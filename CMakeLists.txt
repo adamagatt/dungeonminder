@@ -11,6 +11,7 @@ add_executable(DungeonMinder
     src/draw.cpp
     src/game_state.cpp
     src/hero.cpp
+    src/map.cpp
     src/monster.cpp
     src/position.cpp
     src/utils.cpp

@@ -12,10 +12,6 @@ int main() {
    TCODConsole::initRoot(80,60,"DungeonMinder",false);
    TCODSystem::setFps(25);
 
-   heroSpec = 0;
-   monsterSpec = 0;
-   worldSpec = 0;
-
 gameLoop:
    for (state.level = 1; state.level <= 10 && !TCODConsole::isWindowClosed(); state.level++) {
       if (state.level%3 == 0) {
@@ -26,23 +22,7 @@ gameLoop:
 
       draw.generateMapNoise();
 
-      // Creates the map
-      for (int i = 0; i < MAP_WIDTH; i++) {
-         for (int j = 0; j < MAP_HEIGHT; j++) {
-            state.tileAt({i, j}) = Tile::WALL;
-            state.cloud[i][j] = 0;
-            field[i][j] = 0;
-         }
-      }
-      TCODBsp mapBSP (0,0,MAP_WIDTH,MAP_HEIGHT);
-      if (state.level < 10) {
-         mapBSP.splitRecursive(nullptr, 6, 5, 5, 1.5f, 1.5f);
-      } else {
-         mapBSP.splitRecursive(nullptr, 2, 5, 5, 1.5f, 1.5f);
-      }
-      state.map.model->clear();
-      drawBSP(&mapBSP);
-      state.tileAt({0, 0}) = Tile::WALL;
+      state.createMap();
 
       // Initialise the hero and player
       Position heroPos = Utils::randomMapPosWithCondition(
@@ -52,9 +32,12 @@ gameLoop:
 
       state.setTile(heroPos.offset(0, 1), Tile::STAIRS_UP);
 
-      state.player = heroPos.offset(0, -1);
+
       Hero& hero = *(state.hero);
-      state.tileAt(state.player) = Tile::PLAYER;
+      Player& player = state.player;
+
+      player.pos = heroPos.offset(0, -1);
+      state.tileAt(player.pos) = Tile::PLAYER;
       hero.pos = heroPos;
       state.tileAt(hero.pos) = Tile::HERO;
       hero.health = 10;
@@ -76,9 +59,9 @@ gameLoop:
       hero.dest1 = {-1, -1};
       hero.dest2 = {-1, -1};
       hero.items.clear();
-      state.heroMana = 5*MANA_BLIP_SIZE;
-      state.monsterMana = 5*MANA_BLIP_SIZE;
-      state.worldMana = 5*MANA_BLIP_SIZE;
+      player.heroMana = 5*MANA_BLIP_SIZE;
+      player.monsterMana = 5*MANA_BLIP_SIZE;
+      player.worldMana = 5*MANA_BLIP_SIZE;
       state.illusion.x = -1; state.illusion.y = -1;
 
       if (state.level < 10) {
@@ -132,33 +115,33 @@ gameLoop:
       auto& console = *(TCODConsole::root);
       while (!TCODConsole::isWindowClosed() && !nextlevel) {
          turnTaken = false;
-         Position dest = state.player;
+         Position dest = player.pos;
 
          TCOD_key_t key = Utils::getKeyPress();
 
          if (key.vk == TCODK_UP || key.vk == TCODK_KP8 || key.c == 'k') {
-            dest = state.player.offset(0, -1);
+            dest = state.player.pos.offset(0, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_DOWN || key.vk == TCODK_KP2 || key.c == 'j') {
-            dest = state.player.offset(0, +1);
+            dest = state.player.pos.offset(0, +1);
             turnTaken = true;
          } else if (key.vk == TCODK_LEFT || key.vk == TCODK_KP4 || key.c == 'h') {
-            dest = state.player.offset(-1, 0);
+            dest = state.player.pos.offset(-1, 0);
             turnTaken = true;
          } else if (key.vk == TCODK_RIGHT || key.vk == TCODK_KP6 || key.c == 'l') {
-            dest = state.player.offset(+1, 0);
+            dest = state.player.pos.offset(+1, 0);
             turnTaken = true;
          } else if (key.vk == TCODK_KP7 || key.c == 'y') {
-            dest = state.player.offset(-1, -1);
+            dest = state.player.pos.offset(-1, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_KP9 || key.c == 'u') {
-            dest = state.player.offset(+1, -1);
+            dest = state.player.pos.offset(+1, -1);
             turnTaken = true;
          } else if (key.vk == TCODK_KP1 || key.c == 'b') {
-            dest = state.player.offset(-1, +1);
+            dest = state.player.pos.offset(-1, +1);
             turnTaken = true;
          } else if (key.vk == TCODK_KP3 || key.c == 'n') {
-            dest = state.player.offset(+1, +1);
+            dest = state.player.pos.offset(+1, +1);
             turnTaken = true;
          } else if (key.vk == TCODK_SPACE || key.vk == TCODK_KP5) {
             turnTaken = true;
@@ -167,14 +150,14 @@ gameLoop:
          } else if (key.c == '\'') {
             int direction = Utils::getDirection();
             if (direction != 0) {
-               Position target = state.player.directionOffset(direction);
+               Position target = state.player.pos.directionOffset(direction);
                state.setTile(target, Tile::WALL);
                hero.computePath();
             }
          } else if (key.vk == TCODK_F8) {
-            heroSpec = 0;
-            monsterSpec = 0;
-            worldSpec = 0;
+            player.heroSpec = 0;
+            player.monsterSpec = 0;
+            player.worldSpec = 0;
             state.addMessage("", MessageType::NORMAL);
             state.addMessage("", MessageType::NORMAL);
             state.addMessage("You have started a new game", MessageType::IMPORTANT);
@@ -199,9 +182,9 @@ gameLoop:
          if (dest.withinMap()) {
             Tile& destTile = state.tileAt(dest);
             if (destTile == Tile::BLANK) {
-               state.tileAt(state.player) = Tile::BLANK;
+               state.tileAt(state.player.pos) = Tile::BLANK;
                destTile = Tile::PLAYER;
-               state.player = dest;
+               player.pos = dest;
             } else if (destTile == Tile::MONSTER) {
                Monster* curMonster = state.findMonster(dest);
                state.addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
@@ -233,18 +216,18 @@ gameLoop:
             if (hero.inSpellRadius()) {
                // Mana regeneration is faster if the hero is meditating
                if (hero.meditationTimer > 0) {
-                  state.heroMana += 2;
-                  state.monsterMana += 2;
-                  state.worldMana += 2;
+                  player.heroMana += 2;
+                  player.monsterMana += 2;
+                  player.worldMana += 2;
                } else {
-                  state.heroMana++;
-                  state.monsterMana++;
-                  state.worldMana++;
+                  player.heroMana++;
+                  player.monsterMana++;
+                  player.worldMana++;
                }
                // Ensures the mana generation doesn't go over te limit
-               if (state.heroMana > 5*MANA_BLIP_SIZE) state.heroMana = 5*MANA_BLIP_SIZE;
-               if (state.monsterMana > 5*MANA_BLIP_SIZE) state.monsterMana = 5*MANA_BLIP_SIZE;
-               if (state.worldMana > 5*MANA_BLIP_SIZE) state.worldMana = 5*MANA_BLIP_SIZE;
+               if (player.heroMana > 5*MANA_BLIP_SIZE) player.heroMana = 5*MANA_BLIP_SIZE;
+               if (player.monsterMana > 5*MANA_BLIP_SIZE) player.monsterMana = 5*MANA_BLIP_SIZE;
+               if (player.worldMana > 5*MANA_BLIP_SIZE) player.worldMana = 5*MANA_BLIP_SIZE;
             }
             // If the hero isn't dead, make him move
             if (hero.dead == false) {
@@ -262,15 +245,15 @@ gameLoop:
             // Lowers the amount of clouds and forcefields
             for (int i = 0; i < MAP_WIDTH; i++) {
                for (int j = 0; j < MAP_HEIGHT; j++) {
-                  if (state.cloud[i][j] > 0) {
-                     state.cloud[i][j]--;
-                     if (state.cloud[i][j] == 0) {
+                  if (state.map.cloud[i][j] > 0) {
+                     state.map.cloud[i][j]--;
+                     if (state.map.cloud[i][j] == 0) {
                         state.map.model->setProperties(i, j, true, true);
                      }
                   }
-                  if (field[i][j] > 0) {
-                     field[i][j]--;
-                     if (field[i][j] == 0) {
+                  if (state.map.field[i][j] > 0) {
+                     state.map.field[i][j]--;
+                     if (state.map.field[i][j] == 0) {
                         state.map.model->setProperties(i, j, true, true);
                         state.tileAt({i, j}) = Tile::BLANK;
                      }
@@ -451,9 +434,9 @@ void monsterMove(Monster& curMonster) {
                         }
                      }
                   } else if (diffTile == Tile::PLAYER) {
-                     std::swap(state.player, curMonster.pos);
+                     std::swap(state.player.pos, curMonster.pos);
                      state.addMessage("The " + curMonster.name + " passes through you", MessageType::NORMAL);
-                     state.tileAt(state.player) = Tile::PLAYER;
+                     state.tileAt(state.player.pos) = Tile::PLAYER;
                   } else if (diffTile == Tile::TRAP) {
                      state.addMessage("The " + curMonster.name+ " falls into the trap!", MessageType::NORMAL);
                      curMonster.pos = diffPos;
@@ -502,62 +485,11 @@ void monsterMove(Monster& curMonster) {
    }
 }
 
-void drawBSP(TCODBsp* curBSP) {
-   if (curBSP != nullptr) {
-      if (curBSP->isLeaf()) {
-         int x1 = curBSP->x;
-         int x2 = curBSP->x+curBSP->w-1;
-         int y1 = curBSP->y;
-         int y2 = curBSP->y+curBSP->h-1;
-         for (int i = x1+2; i <= x2-2; i++) {
-            for (int j = y1+Utils::randGen->getInt(1, 2); j <= y2-Utils::randGen->getInt(1, 2); j++) {
-               state.setTile({i, j}, Tile::BLANK);
-            }
-         }
-         for (int j = y1+2; j <= y2-2; j++) {
-            if (Utils::randGen->getInt(1, 2) == 1) {
-               state.setTile({x1+1, j}, Tile::BLANK);
-            }
-            if (Utils::randGen->getInt(1, 2) == 1) {
-               state.setTile({x2-1, j}, Tile::BLANK);
-            }
-         }
-      } else {
-         drawBSP(curBSP->getLeft());
-         drawBSP(curBSP->getRight());
-         if (!curBSP->horizontal) {
-            int x1 = curBSP->getLeft()->x + curBSP->getLeft()->w/2;
-            int x2 = curBSP->getRight()->x + curBSP->getRight()->w/2;
-            int y = curBSP->y + curBSP->h/2;
-            if (x1 > x2) {
-               int temp = x1;
-               x1 = x2;
-               x2 = temp;
-            }
-            for (int i = x1; i <= x2; i++) {
-               state.setTile({i, y},  Tile::BLANK);
-            }
-         } else {
-            int y1 = curBSP->getLeft()->y + curBSP->getLeft()->h/2;
-            int y2 = curBSP->getRight()->y + curBSP->getRight()->h/2;
-            int x = curBSP->x + curBSP->w/2;
-            if (y1 > y2) {
-               int temp = y1;
-               y1 = y2;
-               y2 = temp;
-            }
-            for (int j = y1; j <= y2; j++) {
-               state.setTile({x, j}, Tile::BLANK);
-            }
-         }
-      }
-   }
-}
-
 void presentUpgradeMenu() {
+   Player& player = state.player;
    state.addMessage("You are now experienced enough to specialise your magic!", MessageType::IMPORTANT);
 
-   draw.upgradeMenu(heroSpec, monsterSpec, worldSpec);
+   draw.upgradeMenu();
 
    // Get keyboard input
    TCOD_key_t key;
@@ -566,46 +498,46 @@ void presentUpgradeMenu() {
       key = Utils::getKeyPress();
       if (key.vk == TCODK_BACKSPACE) {
          spell = ' ';
-      } else if (((key.c == 'q' || key.c == 'a' || key.c == 'z') && heroSpec == 0) || ((key.c == 'w' || key.c == 's' || key.c == 'x') && monsterSpec == 0) || ((key.c == 'e' || key.c == 'd' || key.c == 'c') && worldSpec == 0)) {
+      } else if (((key.c == 'q' || key.c == 'a' || key.c == 'z') && player.heroSpec == 0) || ((key.c == 'w' || key.c == 's' || key.c == 'x') && player.monsterSpec == 0) || ((key.c == 'e' || key.c == 'd' || key.c == 'c') && player.worldSpec == 0)) {
          spell = key.c;
       }
    }
    switch (spell) {
       case 'q':
          state.addMessage("You specialise towards Pacifism! Check your spell menu!", MessageType::IMPORTANT);
-         heroSpec = 1;
+         player.heroSpec = 1;
          break;
       case 'a':
          state.addMessage("You specialise towards Speed! Check your spell menu!", MessageType::IMPORTANT);
-         heroSpec = 2;
+         player.heroSpec = 2;
          break;
       case 'z':
          state.addMessage("You specialise towards Heal! Check your spell menu!", MessageType::IMPORTANT);
-         heroSpec = 3;
+         player.heroSpec = 3;
          break;
       case 'w':
          state.addMessage("You specialise towards Blind! Check your spell menu!", MessageType::IMPORTANT);
-         monsterSpec = 1;
+         player.monsterSpec = 1;
          break;
       case 's':
          state.addMessage("You specialise towards Rage! Check your spell menu!", MessageType::IMPORTANT);
-         monsterSpec = 2;
+         player.monsterSpec = 2;
          break;
       case 'x':
          state.addMessage("You specialise towards Sleep! Check your spell menu!", MessageType::IMPORTANT);
-         monsterSpec = 3;
+         player.monsterSpec = 3;
          break;
       case 'e':
          state.addMessage("You specialise towards Clear! Check your spell menu!", MessageType::IMPORTANT);
-         worldSpec = 1;
+         player.worldSpec = 1;
          break;
       case 'd':
          state.addMessage("You specialise towards Cloud! Check your spell menu!", MessageType::IMPORTANT);
-         worldSpec = 2;
+         player.worldSpec = 2;
          break;
       case 'c':
          state.addMessage("You specialise towards Trap! Check your spell menu!", MessageType::IMPORTANT);
-         worldSpec = 3;
+         player.worldSpec = 3;
          break;
       default:
          state.addMessage("You choose not to specialise your spells", MessageType::IMPORTANT);
@@ -616,9 +548,10 @@ void presentUpgradeMenu() {
 bool castSpell(char spellChar) {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
+   Player& player = state.player;
 
    if (spellChar == 'j') {
-      draw.spellMenu(heroSpec, monsterSpec, worldSpec);
+      draw.spellMenu();
 
       // Get keyboard input
       TCOD_key_t key = Utils::getKeyPress();
@@ -629,73 +562,73 @@ bool castSpell(char spellChar) {
    bool spellCast = false;
    switch (spellChar) {
       case 'q':
-         if (state.heroMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][heroSpec][0]);
-            if (spellCast) state.heroMana -= MANA_BLIP_SIZE;
+         if (player.heroMana >= MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[0][player.heroSpec][0]);
+            if (spellCast) player.heroMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'a':
-         if (state.heroMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][heroSpec][1]);
-            if (spellCast) state.heroMana -= 3*MANA_BLIP_SIZE;
+         if (player.heroMana >= 3*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[0][player.heroSpec][1]);
+            if (spellCast) player.heroMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'z':
-         if (state.heroMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][heroSpec][2]);
-            if (spellCast) state.heroMana -= 5*MANA_BLIP_SIZE;
+         if (player.heroMana >= 5*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[0][player.heroSpec][2]);
+            if (spellCast) player.heroMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'w':
-         if (state.monsterMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][monsterSpec][0]);
-            if (spellCast) state.monsterMana -= MANA_BLIP_SIZE;
+         if (player.monsterMana >= MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][0]);
+            if (spellCast) player.monsterMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 's':
-         if (state.monsterMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][monsterSpec][1]);
-            if (spellCast) state.monsterMana -= 3*MANA_BLIP_SIZE;
+         if (player.monsterMana >= 3*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][1]);
+            if (spellCast) player.monsterMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'x':
-         if (state.monsterMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][monsterSpec][2]);
-            if (spellCast) state.monsterMana -= 5*MANA_BLIP_SIZE;
+         if (player.monsterMana >= 5*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][2]);
+            if (spellCast) player.monsterMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'e':
-         if (state.worldMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][worldSpec][0]);
-            if (spellCast) state.worldMana -= MANA_BLIP_SIZE;
+         if (player.worldMana >= MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[2][player.worldSpec][0]);
+            if (spellCast) player.worldMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'd':
-         if (state.worldMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][worldSpec][1]);
-            if (spellCast) state.worldMana -= 3*MANA_BLIP_SIZE;
+         if (player.worldMana >= 3*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[2][player.worldSpec][1]);
+            if (spellCast) player.worldMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
          break;
       case 'c':
-         if (state.worldMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][worldSpec][2]);
-            if (spellCast) state.worldMana -= 5*MANA_BLIP_SIZE;
+         if (player.worldMana >= 5*MANA_BLIP_SIZE) {
+            spellCast = effectSpell(spellLists[2][player.worldSpec][2]);
+            if (spellCast) player.worldMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
          }
@@ -716,6 +649,8 @@ bool effectSpell(Spell chosenSpell) {
    bool minePlaced = false;
    
    draw.screen();
+
+   const Position& playerPos = state.player.pos;
    switch (chosenSpell) {
       case Spell::PACIFISM:
          if (state.level < 10) {
@@ -781,8 +716,8 @@ bool effectSpell(Spell chosenSpell) {
          spellCast = applyMonsterCondition(Condition::SLEEPING, false);
          break;
       case Spell::CLEAR:
-         for (int i = state.player.x-1; i <= state.player.x+1; i++) {
-            for (int j = state.player.y-1; j <= state.player.y+1; j++) {
+         for (int i = playerPos.x-1; i <= playerPos.x+1; i++) {
+            for (int j = playerPos.y-1; j <= playerPos.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
                   Position curPos{i, j};
                   if (Tile& curTile = state.tileAt(curPos); curTile == Tile::WALL || curTile == Tile::TRAP) {
@@ -798,14 +733,14 @@ bool effectSpell(Spell chosenSpell) {
          spellCast = true;
          break;
       case Spell::CLOUD:
-         for (int i = state.player.x-2; i <= state.player.x+2; i++) {
-            for (int j = state.player.y-2; j <= state.player.y+2; j++) {
-               int cloudDist = abs(state.player.x-i)+abs(state.player.y-j);
+         for (int i = playerPos.x-2; i <= playerPos.x+2; i++) {
+            for (int j = playerPos.y-2; j <= playerPos.y+2; j++) {
+               int cloudDist = abs(playerPos.x-i)+abs(playerPos.y-j);
                if ((cloudDist < 4) && i>=0 && i<MAP_WIDTH && j>=0 && j <MAP_HEIGHT) {
                   if (state.tileAt({i, j}) != Tile::WALL) {
                      int newCloudLevel = CLOUD_TIME*(8-cloudDist)/8;
-                     if (newCloudLevel > state.cloud[i][j]) {
-                        state.cloud[i][j] = newCloudLevel;
+                     if (newCloudLevel > state.map.cloud[i][j]) {
+                        state.map.cloud[i][j] = newCloudLevel;
                      }
                      state.map.model->setProperties(i, j, false, true);
                   }
@@ -819,7 +754,7 @@ bool effectSpell(Spell chosenSpell) {
       case Spell::MTRAP:
          direction = Utils::getDirection();
          if (direction != 0) {
-            Position target = state.player.directionOffset(direction);
+            Position target = state.player.pos.directionOffset(direction);
             if (target.withinMap() && state.tileAt(target) == Tile::BLANK) {
                state.addMessage("You create a trap in the ground", MessageType::SPELL);
                state.tileAt(target) = Tile::TRAP;
@@ -960,7 +895,7 @@ bool effectSpell(Spell chosenSpell) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
             for (int i = 1; i <= 3; i++) {
-               Position stepPos = state.player.offset(diffX*i, diffY*i);
+               Position stepPos = state.player.pos.offset(diffX*i, diffY*i);
                if (stepPos.withinMap()) {
                   if (Tile& stepTile = state.tileAt(stepPos); stepTile == Tile::WALL || stepTile == Tile::TRAP) {
                      state.setTile(stepPos, Tile::BLANK);
@@ -976,7 +911,7 @@ bool effectSpell(Spell chosenSpell) {
          break;
       case Spell::MINEFIELD:
          for (int i = 0; i < 5; i++) {
-            Position temp = state.player.offset(
+            Position temp = state.player.pos.offset(
                Utils::randGen->getInt(-2, 2),
                Utils::randGen->getInt(-2, 2)
             );
@@ -997,7 +932,7 @@ bool effectSpell(Spell chosenSpell) {
       case Spell::MAIM:
          direction = Utils::getDirection();
          if (direction != 0) {
-            Position target = state.player.directionOffset(direction);
+            Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target) == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                state.addMessage("The " + targetMonster->name + " looks pained!", MessageType::SPELL);
@@ -1011,7 +946,7 @@ bool effectSpell(Spell chosenSpell) {
       case Spell::CRIPPLE:
          direction = Utils::getDirection();
          if (direction != 0) {
-            Position target = state.player.directionOffset(direction);
+            Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target)  == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
                state.addMessage("A terrible snap comes from inside the " + targetMonster->name + "!", MessageType::SPELL);
@@ -1025,7 +960,7 @@ bool effectSpell(Spell chosenSpell) {
       case Spell::MILLUSION:
          direction = Utils::getDirection();
          if (direction != 0) {
-            Position target = state.player.directionOffset(direction);
+            Position target = state.player.pos.directionOffset(direction);
             if (target.withinMap() && state.tileAt(target) == Tile::BLANK ) {
                if (state.illusion.x != -1) {
                   state.tileAt(state.illusion) = Tile::BLANK;
@@ -1060,12 +995,12 @@ bool effectSpell(Spell chosenSpell) {
                for (int j = -1; j < 2; j++) {
                   int diff = abs(diffX-i)+abs(diffY-j);
                   if ((i != 0 || j != 0) && diff < 2) {
-                     if (Position curr = state.player.offset(i, j); curr.withinMap()) {
+                     if (Position curr = state.player.pos.offset(i, j); curr.withinMap()) {
                         Tile& currTile = state.tileAt(curr);
                         if (currTile == Tile::TRAP || currTile == Tile::WALL) {
                            currTile = Tile::BLANK;
                         }
-                        state.cloud[curr.x][curr.y] = (diff == 0 ? CLOUD_TIME : (CLOUD_TIME*7/8));
+                        state.map.cloud[curr.x][curr.y] = (diff == 0 ? CLOUD_TIME : (CLOUD_TIME*7/8));
                         state.map.model->setProperties(curr.x, curr.y, false, true);
                         screenMade = true;
                      }
@@ -1090,37 +1025,37 @@ bool effectSpell(Spell chosenSpell) {
             Position curr{0, 0};
             if (diffX == 0 || diffY == 0) {
                for (int i = -2; i <= 2; i++) {
-                  curr = state.player.offset(diffX+(i*(1-abs(diffX))), diffY+(i*(1-abs(diffY))));
+                  curr = state.player.pos.offset(diffX+(i*(1-abs(diffX))), diffY+(i*(1-abs(diffY))));
                   if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
-                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map.field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
                for (int i = -1; i <= 1; i++) {
-                  curr = state.player.offset(diffX*2+(i*(1-abs(diffX))), diffY*2+(i*(1-abs(diffY))));
+                  curr = state.player.pos.offset(diffX*2+(i*(1-abs(diffX))), diffY*2+(i*(1-abs(diffY))));
                   if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
-                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map.field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
             } else {
                for (int i = -1; i <= 1; i++) {
-                  curr = state.player.offset(diffX-(i*diffX), diffY+(i*diffY));
+                  curr = state.player.pos.offset(diffX-(i*diffX), diffY+(i*diffY));
                   if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
-                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map.field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
                }
                for (int i = 0; i <= 3; i++) {
-                  curr = state.player.offset(
+                  curr = state.player.pos.offset(
                      static_cast<int>(diffX/2.0f-((i-1.5)*diffX)),
                      static_cast<int>(diffY/2.0f+((i-1.5)*diffY))
                   );
                   if (Tile& currTile = state.tileAt(curr); currTile == Tile::BLANK) {
-                     field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
+                     state.map.field[curr.x][curr.y] = FIELD_TIME-Utils::randGen->getInt(1, 3);
                      state.setTile(curr, Tile::FIELD);
                      fieldMade = true;
                   }
@@ -1141,11 +1076,11 @@ bool effectSpell(Spell chosenSpell) {
          for (int i = -1; i < 2; i++) {
             for (int j = -1; j < 2; j++) {
                if (i != 0 || j != 0) {
-                  Position step1 = state.player.offset(i, j);
+                  Position step1 = state.player.pos.offset(i, j);
                   Tile& step1Tile = state.tileAt(step1);
-                  Position step2 = state.player.offset(2*i, 2*j);
+                  Position step2 = state.player.pos.offset(2*i, 2*j);
                   Tile& step2Tile = state.tileAt(step2);
-                  Position step3 = state.player.offset(3*i, 3*j);
+                  Position step3 = state.player.pos.offset(3*i, 3*j);
                   Tile& step3Tile = state.tileAt(step3);
                   Position temp{step1.x, step1.y};
                   bool trapSprung = false;
@@ -1325,7 +1260,7 @@ bool applyMonsterCondition(Condition curCondition, bool append) {
    if (direction == 0)
       return false;
 
-   Position target = state.player.directionOffset(direction);
+   Position target = state.player.pos.directionOffset(direction);
    if (state.tileAt(target) == Tile::MONSTER) {
       Monster* targetMonster = state.findMonster(target);
       const auto& text = CONDITION_START.at(curCondition);

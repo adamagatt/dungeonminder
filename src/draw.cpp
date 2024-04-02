@@ -74,7 +74,7 @@ void Draw::initialiseSpellMenu() {
    }
 }
 
-void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
+void Draw::spellMenu() {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
@@ -177,6 +177,11 @@ void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
       }
 
    }
+
+   int heroSpec = state.getHeroSpec();
+   int monsterSpec = state.getMonsterSpec();
+   int worldSpec = state.getWorldSpec();
+
    // DRAW THE SPELL INFORMATION
    if (heroSpec == 0) {
       console.setDefaultForeground(TCODColor::lightBlue);
@@ -192,7 +197,6 @@ void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
       console.print(MENU_X+3, MENU_Y+19, "speed"s);
       console.print(MENU_X+3, MENU_Y+27, "Hero recovers from"s);
       console.print(MENU_X+3, MENU_Y+28, "some injuries"s);
-
    } else if (heroSpec == 1) {
       console.setDefaultForeground(TCODColor::lightBlue);
       console.print(MENU_X+3, MENU_Y+5, "Pacifism"s);
@@ -367,7 +371,7 @@ void Draw::spellMenu(int heroSpec, int monsterSpec, int worldSpec) {
    console.flush();
 }
 
-void Draw::upgradeMenu(int heroSpec, int monsterSpec, int worldSpec) {
+void Draw::upgradeMenu() {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
@@ -399,6 +403,10 @@ void Draw::upgradeMenu(int heroSpec, int monsterSpec, int worldSpec) {
    console.print(MENU_X+45, MENU_Y+5,"Clear"s);
    console.print(MENU_X+45, MENU_Y+15,"Cloud"s);
    console.print(MENU_X+45, MENU_Y+25,"Trap"s);
+
+   int heroSpec = state.getHeroSpec();
+   int monsterSpec = state.getMonsterSpec();
+   int worldSpec = state.getWorldSpec();
 
    // List the spells in each
    if (heroSpec == 0) {
@@ -763,7 +771,7 @@ void Draw::screen() {
             float intensity = 150.0f/std::pow((std::pow((i-hero.pos.x), 2)+std::pow((j-hero.pos.y),2)), 0.3);
             console.setDefaultBackground(TCODColor(static_cast<int>(floorColour+intensity), static_cast<int>(floorColour+intensity), floorColour));
          }
-         if (state.cloud[i][j] > 0) {
+         if (state.map.cloud[i][j] > 0) {
             console.setDefaultBackground(TCODColor(100, 150, 100));
             if (curTile == Tile::BLANK) {
                console.setDefaultForeground(TCODColor(80, 100, 80));
@@ -806,7 +814,7 @@ void Draw::screen() {
                console.putChar(i+LEFT, j+TOP, 245, TCOD_BKGND_SET);
                break;
             default:
-               if (state.cloud[i][j] == 0) {
+               if (state.map.cloud[i][j] == 0) {
                   console.putChar(i+LEFT, j+TOP, ' ', TCOD_BKGND_SET);
                }
                break;
@@ -822,8 +830,9 @@ void Draw::screen() {
    }
 
    // Show the player
+   const Position& playerPos = state.player.pos;
    console.setDefaultForeground(TCODColor::white);
-   console.putChar(state.player.x+LEFT, state.player.y+TOP, TCOD_CHAR_LIGHT, TCOD_BKGND_NONE);
+   console.putChar(playerPos.x+LEFT, playerPos.y+TOP, TCOD_CHAR_LIGHT, TCOD_BKGND_NONE);
 
    // Show the hero
    if (hero.dead) {
@@ -1004,7 +1013,7 @@ void Draw::statLine(int row) {
    console.putChar(53, row, 180, TCOD_BKGND_NONE);
    console.setDefaultBackground(TCODColor::lightBlue);
    console.setDefaultForeground(TCODColor::black);
-   for (int i = 0; i < state.heroMana / MANA_BLIP_SIZE; ++i) {
+   for (int i = 0; i < state.player.heroMana / MANA_BLIP_SIZE; ++i) {
       console.putChar(48+i, row, 224, TCOD_BKGND_SET);
    }
    console.setDefaultBackground(TCODColor::black);
@@ -1013,7 +1022,7 @@ void Draw::statLine(int row) {
    console.putChar(61, row, 180, TCOD_BKGND_NONE);
    console.setDefaultBackground(TCODColor::red);
    console.setDefaultForeground(TCODColor::black);
-   for (int i = 0; i < state.monsterMana / MANA_BLIP_SIZE; ++i) {
+   for (int i = 0; i < state.player.monsterMana / MANA_BLIP_SIZE; ++i) {
       console.putChar(56+i, row, 224, TCOD_BKGND_SET);
    }
    console.setDefaultBackground(TCODColor::black);
@@ -1022,7 +1031,7 @@ void Draw::statLine(int row) {
    console.putChar(69, row, 180, TCOD_BKGND_NONE);
    console.setDefaultBackground(TCODColor(156, 156, 156));
    console.setDefaultForeground(TCODColor::black);
-   for (int i = 0; i < state.worldMana / MANA_BLIP_SIZE; ++i) {
+   for (int i = 0; i < state.player.worldMana / MANA_BLIP_SIZE; ++i) {
       console.putChar(64+i, row, 224, TCOD_BKGND_SET);
    }
    console.setDefaultBackground(TCODColor::black);

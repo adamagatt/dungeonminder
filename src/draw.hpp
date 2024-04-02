@@ -12,8 +12,8 @@ class Draw {
    Draw(const GameState& state);
 
    void screen();
-   void spellMenu(int heroSpec, int monsterSpec, int worldSpec);
-   void upgradeMenu(int heroSpec, int monsterSpec, int worldSpec);
+   void spellMenu();
+   void upgradeMenu();
    void victoryScreen();
    void showMessageHistory();
    void statLine(int row);
@@ -29,8 +29,8 @@ class Draw {
    std::unique_ptr<TCODConsole> backboard;
    const GameState& state;
 
-   float floorNoise [MAP_WIDTH][MAP_HEIGHT];
-   float wallNoise [MAP_WIDTH][MAP_HEIGHT];
+   std::array<std::array<float, MAP_HEIGHT>, MAP_WIDTH> floorNoise;
+   std::array<std::array<float, MAP_HEIGHT>, MAP_WIDTH> wallNoise;
 };
 
 #endif

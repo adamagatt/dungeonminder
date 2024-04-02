@@ -122,8 +122,8 @@ bool Hero::move() {
          game.tileAt(pos) = Tile::BLANK;
          Position diff{0, 0};
          // If the hero can see the player
-         if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player) < 2 && game.map.model->isInFov(pos.x, pos.y)) {
-            diff = pos.offset(-game.player.x, -game.player.y);
+         if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player.pos) < 2 && game.map.model->isInFov(pos.x, pos.y)) {
+            diff = pos.offset(-game.player.pos.x, -game.player.pos.y);
             game.addMessage("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
          } else if (game.illusion.x != -1 && game.map.model->isInFov(game.illusion.x, game.illusion.y)) {
             // If the hero sees the illusion, it takes priority
@@ -264,9 +264,9 @@ bool Hero::move() {
          } else if (destTile == Tile::BLANK) {
             pos = dest;
          } else if (destTile == Tile::PLAYER) {
-            std::swap(game.player, pos);
+            std::swap(game.player.pos, pos);
             game.addMessage("The hero passes through you", MessageType::NORMAL);
-            game.tileAt(game.player) = Tile::PLAYER;
+            game.tileAt(game.player.pos) = Tile::PLAYER;
          }
          game.tileAt(pos) = Tile::HERO;
          if ((items.contains(Item::slowBoots) && Utils::randGen->getInt(1, 2) == 1) || slow) {
@@ -391,7 +391,7 @@ bool Hero::move() {
 }
 
 bool Hero::inSpellRadius() const {
-   return Utils::dist(game.player, pos) <= SPELL_RADIUS;
+   return Utils::dist(game.player.pos, pos) <= SPELL_RADIUS;
 }
 
 bool Hero::isAdjacent(int x, int y) const {

@@ -20,14 +20,7 @@
 
 using namespace std::string_literals;
 
-// Relating to spell specialisation
-int heroSpec;
-int monsterSpec;
-int worldSpec;
-
-// Relating to the map 
 bool fullscreen = false;
-int field [MAP_WIDTH][MAP_HEIGHT];
 
 // Relating to the different game modes
 bool mode_specialisation = false;
@@ -36,9 +29,6 @@ bool mode_hero_levels = false;
 /** Displaying */
 void displayRangedAttack(int, int, int, int);
 void displayRangedAttack(const Position& p1, const Position& p2);
-
-/** Initialisation */
-void drawBSP(TCODBsp*);
 
 /** Player */
 void presentUpgradeMenu();

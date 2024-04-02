@@ -21,19 +21,20 @@ void GameState::addMessage(const std::string& message, MessageType type) {
    messageList.push_back({message, type});
 }
 
+void GameState::createMap() {
+   map.createMap(level);
+}
 
 const Tile& GameState::tileAt(const Position& pos) const {
-    return map.tiles[pos.x][pos.y];
+    return map.tileAt(pos);
 }
 
 Tile& GameState::tileAt(const Position& pos) {
-    return map.tiles[pos.x][pos.y];
+    return map.tileAt(pos);
 }
 
 void GameState::setTile(const Position& pos, Tile tile) {
-   tileAt(pos) = tile;
-   const auto& [visible, walkable] = tileProperties.at(tile);
-   map.model->setProperties(pos.x, pos.y, visible, walkable);
+   map.setTile(pos, tile);
 }
 
 bool GameState::isInFov(int x, int y) const {
@@ -187,15 +188,26 @@ void GameState::addSpecifiedMonster(int tempx, int tempy, int number, bool porta
    }
 }
 
-const std::unordered_map<const Tile, const std::pair<bool, bool>> GameState::tileProperties {
-   {Tile::BLANK, {true, true}},
-   {Tile::WALL, {false, false}},
-   {Tile::MONSTER, {true, true}},
-   {Tile::STAIRS, {true, false}},
-   {Tile::STAIRS_UP, {true, false}},
-   {Tile::CHEST, {true, false}},
-   {Tile::CHEST_OPEN, {true, false}},
-   {Tile::FIELD, {false, false}},
-   {Tile::PORTAL, {true, false}},
-   {Tile::ILLUSION, {true, true}}
-};
+int GameState::getHeroSpec() const {
+   return player.heroSpec;
+}
+   
+void GameState::setHeroSpec(int heroSpec) {
+   player.heroSpec = heroSpec;
+}
+
+int GameState::getMonsterSpec() const {
+   return player.monsterSpec;
+}
+
+void GameState::setMonsterSpec(int monsterSpec) {
+   player.monsterSpec = monsterSpec;
+}
+
+int GameState::getWorldSpec() const {
+   return player.worldSpec;
+}
+
+void GameState::setWorldSpec(int worldSpec) {
+   player.worldSpec = worldSpec;
+}

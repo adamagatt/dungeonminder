@@ -4,6 +4,8 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "map.hpp"
+#include "player.hpp"
 #include "position.hpp"
 
 #include <list>
@@ -21,6 +23,7 @@ class GameState {
 
    void addMessage(const std::string& message, MessageType type);
    
+   void createMap();
    [[nodiscard]] Tile& tileAt(const Position& pos);
    [[nodiscard]] const Tile& tileAt(const Position& pos) const;
    void setTile(const Position& pos, Tile tile);
@@ -38,24 +41,20 @@ class GameState {
    bool hitMonster(int x, int y, int amount);
    bool hitMonster(const Position& pos, int amount);
 
-   using Tiles = std::array<std::array<Tile, MAP_HEIGHT>, MAP_WIDTH>;
-   struct Map {
-      Tiles tiles;
-      std::unique_ptr<TCODMap> model = std::make_unique<TCODMap>(MAP_WIDTH, MAP_HEIGHT);
-   } map;
-   
-   int level;
-   bool bossDead {false};
-   
-   Position player;
-   int heroMana = MANA_BLIP_SIZE*5;
-   int monsterMana = MANA_BLIP_SIZE*5;
-   int worldMana = MANA_BLIP_SIZE*5;
+   [[nodiscard]] int getHeroSpec() const;
+   void setHeroSpec(int heroSpec);
+   [[nodiscard]] int getMonsterSpec() const;
+   void setMonsterSpec(int monsterSpec);
+   [[nodiscard]] int getWorldSpec() const;
+   void setWorldSpec(int worldSpec);
 
+   Player player;
    std::vector<Monster> monsterList;
    std::unique_ptr<Hero> hero;
-
-   std::array<std::array<int, MAP_HEIGHT>, MAP_WIDTH> cloud;
+   
+   int level;
+   Map map;
+   bool bossDead {false};
    Position illusion;
 
    struct Message {
@@ -65,9 +64,6 @@ class GameState {
 
    std::list<Message> messageList;
    static constexpr int MESSAGE_COUNT = 28;
-
-   private:
-   static const std::unordered_map<const Tile, const std::pair<bool, bool>> tileProperties;
 };
 
 #endif
