@@ -1,7 +1,7 @@
 # DungeonMinder
 The game about being a small invisible fairy tasked with keeping an adventurer alive. Accompany the heroic '@' as he explores the dungeon! Watch as he stupidly picks fights with monsters far stronger than him! Subtly influence the resulting brawl to keep him alive long enough to reach the stairs! Don't ever expect to be thanked for your good plans and hard work.
 
-#### :information_source: Development note
+#### :large_blue_circle: Development note
 I rushed out this game in 7 days back in 2009 when I knew almost nothing about C++ and so this was originally some of the worst code I have written. In 2024 I have much more experience under my belt and so I am using this codebase as a refactoring exercise to uplift it to a reasonable level of quality. 
 
 ## Features
