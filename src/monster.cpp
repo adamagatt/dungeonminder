@@ -185,8 +185,7 @@ void Monster::rangedAttackHero(GameState& state) {
         sprintf(buffer, "%d", damage);
         state.addMessage("The " + name + " " + rangedName + " at the hero for " + buffer + " damage", MessageType::NORMAL);
         if (hero.health <= 0) {
-            hero.dead = true;
-            state.addMessage("The hero has died!", MessageType::IMPORTANT);
+            hero.die();
         } else if (hero.meditationTimer > 0) {
             hero.meditationTimer = 0;
             state.addMessage("The hero's meditation is interrupted!", MessageType::SPELL);
@@ -224,8 +223,7 @@ void Monster::performMove(GameState& state, Position diff) {
             sprintf(buffer, "%d", damage);
             state.addMessage("The " + name + " hits the hero for " + buffer + " damage", MessageType::NORMAL);
             if (hero.health <= 0) {
-                hero.dead = true;
-                state.addMessage("The hero has died!", MessageType::IMPORTANT);
+                hero.die();
             } else if (hero.meditationTimer > 0) {
                 hero.meditationTimer = 0;
                 state.addMessage("The hero's meditation is interrupted!", MessageType::SPELL);

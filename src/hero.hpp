@@ -48,6 +48,8 @@ class Hero {
    void giveItem();
    void computePath();
    bool gainHealth(int);
+   void die();
+
    bool checkWin() const;
    bool isAdjacent(int, int) const;
    bool isAdjacent(const Position& pos) const;

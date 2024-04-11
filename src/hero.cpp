@@ -101,6 +101,10 @@ bool Hero::gainHealth(int amount) {
    return gained;
 }
 
+void Hero::die() {
+   dead = true;
+   game.addMessage("The hero has died!", MessageType::IMPORTANT);
+}
 
 void Hero::computePath() {
    const Position& dest = currentGoal == Goal::chest1 ? game.map.chest1Goal

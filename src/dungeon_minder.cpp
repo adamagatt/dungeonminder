@@ -930,8 +930,7 @@ bool effectSpell(Spell chosenSpell) {
                               state.tileAt(temp) = Tile::HERO;
                               hero.pos.x = temp.x; hero.pos.y = temp.y;
                               if (hero.health <= 0) {
-                                 hero.dead = true;
-                                 state.addMessage("The hero has died!", MessageType::IMPORTANT);
+                                 hero.die();
                               } else {
                                  state.addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
@@ -965,8 +964,7 @@ bool effectSpell(Spell chosenSpell) {
                               state.addMessage("You blow a trap into the hero!", MessageType::SPELL);
                               hero.health -= 4;
                               if (hero.health <= 0) {
-                                 hero.dead = true;
-                                 state.addMessage("The hero has died!", MessageType::IMPORTANT);
+                                 hero.die();
                               } else {
                                  state.addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
                               }
