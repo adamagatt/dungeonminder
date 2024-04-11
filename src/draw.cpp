@@ -46,6 +46,23 @@ void Draw::directionFrame(int x, int y, int width, int height) {
    console.putChar(x+width-1, y+height-1, 217, TCOD_BKGND_SET);
 }
 
+void Draw::rangedAttack(int x1, int y1, int x2, int y2) {
+   auto& console = *(TCODConsole::root);
+
+   TCODLine::init(x1, y1, x2, y2);
+   int xStep = x1, yStep = y1;
+   do {
+      console.setDefaultForeground(TCODColor::red);
+      console.putChar(LEFT+xStep, TOP+yStep, '*', TCOD_BKGND_NONE);
+   } while (! TCODLine::step(&xStep, &yStep) );
+   console.flush();
+   TCODSystem::sleepMilli(200);
+}
+
+void Draw::rangedAttack(const Position& p1, const Position& p2) {
+   rangedAttack(p1.x, p1.y, p2.x, p2.y);
+}
+
 void Draw::initialiseSpellMenu() {
    // Instantiate the spell menu
    backboard = std::make_unique<TCODConsole>(66, 35);

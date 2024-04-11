@@ -18,6 +18,8 @@ class Draw {
    void showMessageHistory();
    void statLine(int row);
    static void directionScreen();
+   static void rangedAttack(int, int, int, int);
+   static void rangedAttack(const Position& p1, const Position& p2);
 
    void generateMapNoise();
 

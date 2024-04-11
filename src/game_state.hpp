@@ -15,7 +15,7 @@
 #include <vector>
 
 struct Hero;
-struct Monster;
+class Monster;
 
 class GameState {
    public:
