@@ -56,13 +56,15 @@ gameLoop:
 
       hero.pathstep = 0;
       hero.dead = false;
-      hero.dest1 = {-1, -1};
-      hero.dest2 = {-1, -1};
       hero.items.clear();
       player.heroMana = 5*MANA_BLIP_SIZE;
       player.monsterMana = 5*MANA_BLIP_SIZE;
       player.worldMana = 5*MANA_BLIP_SIZE;
-      state.illusion.x = -1; state.illusion.y = -1;
+
+      state.illusion = {-1, -1};
+      state.map.chest1Goal = {-1, -1};
+      state.map.chest2Goal = {-1, -1};
+      state.map.exitGoal = {-1, -1};
 
       if (state.level < 10) {
          // Place the stairs
@@ -70,25 +72,25 @@ gameLoop:
             [&hero](const auto& pos){return state.isEmptyPatch(pos) && Utils::dist(hero.pos, pos) >= 20;}
          );
          state.setTile(stairsPos, Tile::STAIRS);
-         hero.stairs = stairsPos.offset(0, 1);
+         state.map.exitGoal = stairsPos.offset(0, 1);
          
          // Place the chests
          Position chest1Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
             return state.isEmptyPatch(pos) &&
                    Utils::dist(hero.pos, pos) >= 20 &&
-                   Utils::dist(hero.stairs, pos) >= 20;
+                   Utils::dist(state.map.exitGoal, pos) >= 20;
          });
          state.setTile(chest1Pos, Tile::CHEST);
-         hero.dest1 = chest1Pos.offset(0, 1);
+         state.map.chest1Goal = chest1Pos.offset(0, 1);
 
          Position chest2Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
             return state.isEmptyPatch(pos) &&
                    Utils::dist(hero.pos, pos) >= 20 &&
-                   Utils::dist(hero.dest1, pos) >= 20 &&
-                   Utils::dist(hero.stairs, pos) >= 20;
+                   Utils::dist(state.map.chest1Goal, pos) >= 20 &&
+                   Utils::dist(state.map.exitGoal, pos) >= 20;
          });
          state.setTile(chest2Pos, Tile::CHEST);
-         hero.dest2 = chest2Pos.offset(0, 1);
+         state.map.chest2Goal = chest2Pos.offset(0, 1);
       }
 
       // PLACE TRAPS
@@ -707,13 +709,13 @@ bool effectSpell(Spell chosenSpell) {
          }
          break;
       case Spell::BLIND:
-         spellCast = applyMonsterCondition(Condition::BLINDED, false);
+         spellCast = castEffectSpellAtMonster(Condition::BLINDED, false);
          break;
       case Spell::RAGE:
-         spellCast = applyMonsterCondition(Condition::RAGED, false);
+         spellCast = castEffectSpellAtMonster(Condition::RAGED, false);
          break;
       case Spell::SLEEP:
-         spellCast = applyMonsterCondition(Condition::SLEEPING, false);
+         spellCast = castEffectSpellAtMonster(Condition::SLEEPING, false);
          break;
       case Spell::CLEAR:
          for (int i = playerPos.x-1; i <= playerPos.x+1; i++) {
@@ -974,16 +976,16 @@ bool effectSpell(Spell chosenSpell) {
          }
          break;
       case Spell::WEAKEN:
-         spellCast = applyMonsterCondition(Condition::WEAKENED, true);
+         spellCast = castEffectSpellAtMonster(Condition::WEAKENED, true);
          break;
       case Spell::ALLY:
-         spellCast = applyMonsterCondition(Condition::ALLIED, false);
+         spellCast = castEffectSpellAtMonster(Condition::ALLIED, false);
          break;
       case Spell::HALT:
-         spellCast = applyMonsterCondition(Condition::HALTED, false);
+         spellCast = castEffectSpellAtMonster(Condition::HALTED, false);
          break;
       case Spell::FLEE:
-         spellCast = applyMonsterCondition(Condition::FLEEING, false);
+         spellCast = castEffectSpellAtMonster(Condition::FLEEING, false);
          break;
       case Spell::SCREEN:
          direction = Utils::getDirection();
@@ -1252,10 +1254,10 @@ void generateEndBoss() {
       state.addMonster("Evil Mage", 'M', bossPos.x, bossPos.y, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
       state.addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
    }
-   hero.stairs = bossPos;
+   state.map.exitGoal = bossPos;
 }
 
-bool applyMonsterCondition(Condition curCondition, bool append) {
+bool castEffectSpellAtMonster(Condition curCondition, bool append) {
    int direction = Utils::getDirection();
    if (direction == 0)
       return false;

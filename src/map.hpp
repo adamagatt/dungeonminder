@@ -20,10 +20,17 @@ class Map {
    [[nodiscard]] Tile& tileAt(const Position& pos);
    [[nodiscard]] const Tile& tileAt(const Position& pos) const;
 
+   void openChest1();
+   void openChest2();
+
    Tiles tiles;
    std::unique_ptr<TCODMap> model = std::make_unique<TCODMap>(MAP_WIDTH, MAP_HEIGHT);
    std::array<std::array<int, MAP_HEIGHT>, MAP_WIDTH> field;
    std::array<std::array<int, MAP_HEIGHT>, MAP_WIDTH> cloud;
+
+   Position chest1Goal;
+   Position chest2Goal;
+   Position exitGoal;
 
    private:
    void drawBSP(TCODBsp*);

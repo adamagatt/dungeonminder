@@ -22,10 +22,6 @@ using namespace std::string_literals;
 
 bool fullscreen = false;
 
-// Relating to the different game modes
-bool mode_specialisation = false;
-bool mode_hero_levels = false;
-
 /** Displaying */
 void displayRangedAttack(int, int, int, int);
 void displayRangedAttack(const Position& p1, const Position& p2);
@@ -38,7 +34,7 @@ bool effectSpell(Spell);
 /** Monster */
 void generateMonsters(int, int);
 void monsterMove(Monster&);
-bool applyMonsterCondition(Condition, bool);
+bool castEffectSpellAtMonster(Condition, bool);
 void generateEndBoss();
 
 GameState state{};

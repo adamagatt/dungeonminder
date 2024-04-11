@@ -22,7 +22,7 @@ constexpr int PORTAL_TIME = 20;
 constexpr int MANA_BLIP_SIZE = 10;
 
 // Conditions
-const int CONDITION_COUNT = 7;
+constexpr int CONDITION_COUNT = 7;
 enum class Condition {
     SLEEPING,
     BLINDED,

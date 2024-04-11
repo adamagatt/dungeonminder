@@ -12,7 +12,7 @@ Hero::Hero(GameState& game) :
 
 bool Hero::checkWin() const {
    bool result = false;
-   if (dest1.x == -1 && dest2.x == -1 && pos == stairs && !dead) {
+   if (currentGoal == Goal::exit && pos == game.map.exitGoal && !dead) {
       result = true;
    }
    return result;
@@ -42,11 +42,11 @@ void Hero::giveItem() {
          for (int j = 0; j < 2; j++) {
             Position src, dest;
             if (j == 0) {
-               src = dest1;
-               dest = dest2;
+               src = game.map.chest1Goal;
+               dest = game.map.chest2Goal;
             } else {
-               src = dest2;
-               dest = stairs;
+               src = game.map.chest2Goal;
+               dest = game.map.exitGoal;
             }
             path.compute(src.x, src.y, dest.x, dest.y);
             int pathX = -1, pathY = -1;
@@ -103,13 +103,10 @@ bool Hero::gainHealth(int amount) {
 
 
 void Hero::computePath() {
-   if (dest1.x != -1) {
-      path.compute(pos.x, pos.y, dest1.x, dest1.y);
-   } else if (dest2.x != -1) {
-      path.compute(pos.x, pos.y, dest2.x, dest2.y);
-   } else {
-      path.compute(pos.x, pos.y, stairs.x, stairs.y);
-   }
+   const Position& dest = currentGoal == Goal::chest1 ? game.map.chest1Goal
+                        : currentGoal == Goal::chest2 ? game.map.chest2Goal
+                                                      : game.map.exitGoal;
+   path.compute(pos.x, pos.y, dest.x, dest.y);
    pathstep = 0;
 }
 
@@ -152,14 +149,14 @@ bool Hero::move() {
                pathstep = 0;
                path.compute(pos.x, pos.y, target->pos.x, target->pos.y); 
             } else {
-               if (pos == dest1) {
-                  game.tileAt(dest1.offset(0, -1)) = Tile::CHEST_OPEN;
+               if (currentGoal == Goal::chest1 && pos == game.map.chest1Goal) {
+                  game.map.openChest1();
                   giveItem();
-                  dest1 = {-1, -1};
-               } else if (dest1.x == -1 && pos == dest2) {
-                  game.tileAt(dest2.offset(0, -1)) = Tile::CHEST_OPEN;
+                  currentGoal = Goal::chest2;
+               } else if (currentGoal == Goal::chest2 && pos == game.map.chest2Goal) {
+                  game.map.openChest2();
                   giveItem();
-                  dest2 = {-1, -1};
+                  currentGoal = Goal::exit;
                } else {
                   // If the hero doesn't have a path, give him one
                   if (path.isEmpty()) {

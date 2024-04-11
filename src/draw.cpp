@@ -826,7 +826,7 @@ void Draw::screen() {
    // Show the stairs
    if (state.level < 10) {
       console.setDefaultForeground(TCODColor::white);
-      console.putChar(hero.stairs.x+LEFT, hero.stairs.y-1+TOP, '>', TCOD_BKGND_NONE);
+      console.putChar(state.map.exitGoal.x+LEFT, state.map.exitGoal.y-1+TOP, '>', TCOD_BKGND_NONE);
    }
 
    // Show the player

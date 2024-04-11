@@ -35,6 +35,14 @@ Tile& Map::tileAt(const Position& pos) {
     return tiles[pos.x][pos.y];
 }
 
+void Map::openChest1() {
+   tileAt(chest1Goal.offset(0, -1)) = Tile::CHEST_OPEN;
+}
+
+void Map::openChest2() {
+   tileAt(chest2Goal.offset(0, -1)) = Tile::CHEST_OPEN;
+}
+
 void Map::drawBSP(TCODBsp* curBSP) {
    if (curBSP != nullptr) {
       if (curBSP->isLeaf()) {

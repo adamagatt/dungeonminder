@@ -54,9 +54,10 @@ class Hero {
    bool inSpellRadius() const;
 
    Position pos;
-   Position dest1;
-   Position dest2;
-   Position stairs;
+
+   enum class Goal {chest1, chest2, exit} currentGoal;
+
+   
    int wait, timer, health, damage;
    Monster* target;
    int pathstep;
