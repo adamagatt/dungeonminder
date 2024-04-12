@@ -190,7 +190,7 @@ gameLoop:
                player.pos = dest;
             } else if (destTile == Tile::MONSTER) {
                Monster* curMonster = state.findMonster(dest);
-               state.addMessage("You are blocked by the " + curMonster->name, MessageType::NORMAL);
+               state.addMessage("You are blocked by the " + curMonster->type->name, MessageType::NORMAL);
             } else if (destTile == Tile::HERO) {
                if (hero.dead) {
                   state.addMessage("You are blocked by the hero's corpse", MessageType::NORMAL);
@@ -731,7 +731,7 @@ bool effectSpell(Spell chosenSpell) {
             Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target) == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
-               state.addMessage("The " + targetMonster->name + " looks pained!", MessageType::SPELL);
+               state.addMessage("The " + targetMonster->type->name + " looks pained!", MessageType::SPELL);
                targetMonster->maimed = true;
             } else {
                state.addMessage("The spell fizzles in empty air", MessageType::SPELL);
@@ -745,7 +745,7 @@ bool effectSpell(Spell chosenSpell) {
             Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target)  == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
-               state.addMessage("A terrible snap comes from inside the " + targetMonster->name + "!", MessageType::SPELL);
+               state.addMessage("A terrible snap comes from inside the " + targetMonster->type->name + "!", MessageType::SPELL);
                targetMonster->health = (targetMonster->health+1)/2;
             } else {
                state.addMessage("The spell fizzles in empty air", MessageType::SPELL);
@@ -896,12 +896,12 @@ bool effectSpell(Spell chosenSpell) {
                            temp = step2;
                         }
                         Monster* target = state.findMonster(step1);
-                        target->timer = target->wait;
+                        target->timer = target->type->wait;
                         step1Tile = Tile::BLANK;
                         state.tileAt(temp) = Tile::MONSTER;
                         target->pos = temp;
                         if (trapSprung) {
-                           state.addMessage("The " + target->name+ " is blown into the trap!", MessageType::SPELL);
+                           state.addMessage("The " + target->type->name+ " is blown into the trap!", MessageType::SPELL);
                            state.hitMonster(target->pos, 4);
                         }
                      } else if (step1Tile == Tile::HERO) {
@@ -973,7 +973,7 @@ bool effectSpell(Spell chosenSpell) {
                            }
                         } else if (tempTile == Tile::MONSTER) {
                            Monster* target = state.findMonster(temp);
-                           state.addMessage("You blow a trap into the " + target->name+ "!", MessageType::SPELL);
+                           state.addMessage("You blow a trap into the " + target->type->name+ "!", MessageType::SPELL);
                            state.hitMonster(target->pos, 4);
                         }
                      }
@@ -1007,7 +1007,7 @@ void generateMonsters(int level, int amount) {
             temp = {x, y};
          }
          int randomMonster = Utils::randGen->getInt(level-1, level+3);
-         state.addSpecifiedMonster(temp.x, temp.y, randomMonster, false);
+         state.addSpecifiedMonster(temp, randomMonster, false);
       }
    }
 }
@@ -1019,14 +1019,14 @@ void generateEndBoss() {
    );
    int boss = Utils::randGen->getInt(0, 2);
    if (boss == 0) {
-      state.addMonster("Master Summoner", '*', bossPos.x, bossPos.y, 20, 2, false, " ", 0.0f, 15, false); 
+      state.addMonster(MasterSummonerType, bossPos, false); 
       state.addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);
    } else if (boss == 1) {
-      state.addMonster("Noble Hero", '@', bossPos.x, bossPos.y, 30, 3, false, " ", 0.0f, 2, false); 
+      state.addMonster(NobleHeroType, bossPos, false); 
       state.addMessage("Noble Hero: I have made it to the treasure first, my boastful rival.", MessageType::VILLAIN);
       state.addMessage("Noble Hero: I wish you no harm, do not force me to defend myself.", MessageType::VILLAIN);
    } else {
-      state.addMonster("Evil Mage", 'M', bossPos.x, bossPos.y, 15, 4, true, "shoots lightning", 20.0f, 5, false); 
+      state.addMonster(EvilMageType, bossPos, false); 
       state.addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
    }
    state.map.exitGoal = bossPos;
@@ -1041,7 +1041,7 @@ bool castEffectSpellAtMonster(Condition curCondition, bool append) {
    if (state.tileAt(target) == Tile::MONSTER) {
       Monster* targetMonster = state.findMonster(target);
       const auto& text = CONDITION_START.at(curCondition);
-      state.addMessage(text.first + targetMonster->name + text.second, MessageType::SPELL);
+      state.addMessage(text.first + targetMonster->type->name + text.second, MessageType::SPELL);
       
       int& timer = targetMonster->conditionTimers.at(curCondition);
       const int amount = CONDITION_TIMES.at(curCondition);

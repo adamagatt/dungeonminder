@@ -3,14 +3,17 @@
 #include "draw.hpp"
 #include "hero.hpp"
 
-Monster::Monster() {
+Monster::Monster(const MonsterType& type, const Position& pos, bool portalSpawned)
+ : Entity(pos, type.maxHealth, 0), type(&type),
+   portalTimer(portalSpawned ? PORTAL_TIME : 0) {
+
     for(int i = 0; i < CONDITION_COUNT; ++i) {
         conditionTimers[static_cast<Condition>(i)] = 0;
     }
 }
 
 bool Monster::operator==(const Monster& other) const {
-    return name == other.name && pos == other.pos;
+    return type == other.type && pos == other.pos;
 }
 
 bool Monster::affectedBy(Condition condition) const {
@@ -19,7 +22,7 @@ bool Monster::affectedBy(Condition condition) const {
 }
 
 void Monster::takeTurn(GameState& state) {
-    if (portalTimer > 0) { // Stil spawning
+    if (portalTimer > 0) { // Still spawning
       portalTimer--;
       // Once the monster has spawned
       if (portalTimer == 0) {
@@ -29,13 +32,13 @@ void Monster::takeTurn(GameState& state) {
         conditionTimers[Condition::SLEEPING]--;
         if (!affectedBy(Condition::SLEEPING)) {
             auto& text = CONDITION_END.at(Condition::SLEEPING);
-            state.addMessage(text.first + name + text.second, MessageType::SPELL);
+            state.addMessage(text.first + type->name + text.second, MessageType::SPELL);
         }
     } else {
         if (timer == 0) { // Ready to act
             takeAction(state);
             decreaseConditionTimers(state);
-            timer = wait;
+            timer = type->wait;
         }
         timer -= 1;
     }
@@ -47,25 +50,25 @@ void Monster::decreaseConditionTimers(GameState& state) {
             timer--;
             if (timer == 0) {
                 const auto& text = CONDITION_END.at(condition);
-                state.addMessage(text.first + name + text.second, MessageType::SPELL);
+                state.addMessage(text.first + type->name + text.second, MessageType::SPELL);
             }
         }
     }
 }
 
 void Monster::takeAction(GameState& state) {
-    if (symbol == '*') { // Master Summoner boss will summon a monster
+    if (type->symbol == '*') { // Master Summoner boss will summon a monster
         if (state.monsterList.size() < MAX_MONSTERS) {
             Position l = Utils::randomMapPosWithCondition(
                 [&state](const auto& pos){return state.tileAt(pos) == Tile::BLANK;}
             );
-            state.addSpecifiedMonster(l.x, l.y, Utils::randGen->getInt(0, 12), true);
+            state.addSpecifiedMonster(l, Utils::randGen->getInt(0, 12), true);
         }
     } else {
         state.tileAt(pos) = Tile::BLANK;
 
         ActionDecision decision = decideOnAction(state);
-        if (std::holds_alternative<RangedAttack>(decision)) { // Monster decided on ranged attack
+        if (std::holds_alternative<MakeRangedAttack>(decision)) { // Monster decided on ranged attack
             rangedAttackHero(state);
         } else { // Monster decided to move (or attack adjacent target)
             performMove(state, std::get<MoveTo>(decision).pos);
@@ -139,13 +142,12 @@ Monster::ActionDecision Monster::decideOnAction(const GameState& state) {
     } else if (angry && !hero.dead && (!affectedBy(Condition::BLINDED) || hero.isAdjacent(pos))) {
         // Aggro'd monster
 
-        if (
-            ranged && // Ranged monster
+        if (type->rangedAttack && // Ranged monster
             !hero.isAdjacent(pos) && // not directly next to hero
-            Utils::dist(pos, hero.pos) <= range && // but hero is within range
+            Utils::dist(pos, hero.pos) <= type->rangedAttack->distance && // but hero is within range
             state.map.model->isInFov(pos.x, pos.y) // and we can see them
         ) {
-            return RangedAttack{};
+            return MakeRangedAttack{};
         }
 
         desiredPos = {
@@ -157,7 +159,7 @@ Monster::ActionDecision Monster::decideOnAction(const GameState& state) {
         // Will aggro if
         if (state.map.model->isInFov(pos.x, pos.y) && // we can see the hero
             (!affectedBy(Condition::BLINDED) || hero.isAdjacent(pos)) && // and not blind (or is adjacent)
-            (symbol != '@' || health != maxhealth)) { // (noble hero boss will only aggro if hit first)
+            (type->symbol != '@' || health != type->maxHealth)) { // (noble hero boss will only aggro if hit first)
             angry = true;
         }
         desiredPos = {
@@ -183,7 +185,7 @@ void Monster::rangedAttackHero(GameState& state) {
         hero.health -= damage;
         char buffer[20];
         sprintf(buffer, "%d", damage);
-        state.addMessage("The " + name + " " + rangedName + " at the hero for " + buffer + " damage", MessageType::NORMAL);
+        state.addMessage("The " + type->name + " " + type->rangedAttack->description + " at the hero for " + buffer + " damage", MessageType::NORMAL);
         if (hero.health <= 0) {
             hero.die();
         } else if (hero.meditationTimer > 0) {
@@ -194,13 +196,13 @@ void Monster::rangedAttackHero(GameState& state) {
         hero.shieldTimer -= damage;
         if (hero.shieldTimer <= 0) {
         hero.shieldTimer = 0;
-        state.addMessage("The shield is shattered by the " + name + "'s attack!", MessageType::SPELL);
+        state.addMessage("The shield is shattered by the " + type->name + "'s attack!", MessageType::SPELL);
         } else {
-        state.addMessage("The " + name + "'s attack is deflected by the shield", MessageType::SPELL);
+        state.addMessage("The " + type->name + "'s attack is deflected by the shield", MessageType::SPELL);
         }
     }
     if (maimed) {
-        state.addMessage("The "+name+" suffers from the exertion!", MessageType::NORMAL);
+        state.addMessage("The " + type->name + " suffers from the exertion!", MessageType::NORMAL);
         state.hitMonster(pos, damage);
     }
 }
@@ -212,16 +214,16 @@ void Monster::performMove(GameState& state, Position diff) {
 
     if (diffPos == hero.pos && !affectedBy(Condition::ALLIED)) {
         if (hero.dead) {
-            hero.health -= damage;
-            if (symbol != '@') {
-                state.addMessage("The " + name + " savages the hero's corpse", MessageType::NORMAL);
+            hero.health -= type->damage;
+            if (type->symbol != '@') {
+                state.addMessage("The " + type->name + " savages the hero's corpse", MessageType::NORMAL);
             }
         } else {
             int damage = getDamageDealt();
             hero.health -= damage;
             char buffer[20];
             sprintf(buffer, "%d", damage);
-            state.addMessage("The " + name + " hits the hero for " + buffer + " damage", MessageType::NORMAL);
+            state.addMessage("The " + type->name + " hits the hero for " + buffer + " damage", MessageType::NORMAL);
             if (hero.health <= 0) {
                 hero.die();
             } else if (hero.meditationTimer > 0) {
@@ -233,7 +235,7 @@ void Monster::performMove(GameState& state, Position diff) {
                 }
             }
             if (maimed) {
-                state.addMessage("The "+name+" suffers from the exertion!", MessageType::NORMAL);
+                state.addMessage("The " + type->name + " suffers from the exertion!", MessageType::NORMAL);
                 state.hitMonster(pos, damage);
             }
         }
@@ -241,26 +243,26 @@ void Monster::performMove(GameState& state, Position diff) {
         if (Monster* otherMonster = state.findMonster(diffPos); otherMonster != nullptr) {
             if (affectedBy(Condition::RAGED) || affectedBy(Condition::ALLIED)) {
                 char buffer[20];
-                sprintf(buffer, "%d", damage);
-                state.addMessage("The " + name + " hits the " + otherMonster->name + " for " +buffer + " damage", MessageType::NORMAL);
-                state.hitMonster(diffPos, damage);
+                sprintf(buffer, "%d", type->damage);
+                state.addMessage("The " + type->name + " hits the " + otherMonster->type->name + " for " + buffer + " damage", MessageType::NORMAL);
+                state.hitMonster(diffPos, type->damage);
             } else {
-                state.addMessage("The " + name + " bumps into the " + otherMonster->name, MessageType::NORMAL);
+                state.addMessage("The " + type->name + " bumps into the " + otherMonster->type->name, MessageType::NORMAL);
             }
         }
     } else if (diffTile == Tile::PLAYER) {
         std::swap(state.player.pos, pos);
-        state.addMessage("The " + name + " passes through you", MessageType::NORMAL);
+        state.addMessage("The " + type->name + " passes through you", MessageType::NORMAL);
         state.tileAt(state.player.pos) = Tile::PLAYER;
     } else if (diffTile == Tile::TRAP) {
-        state.addMessage("The " + name+ " falls into the trap!", MessageType::NORMAL);
+        state.addMessage("The " + type->name+ " falls into the trap!", MessageType::NORMAL);
         pos = diffPos;
         diffTile = Tile::MONSTER;
         state.hitMonster(pos, 4);
     } else if (diffTile == Tile::ILLUSION) {
         diffTile = Tile::BLANK;
         state.illusion = {1, -1};
-        state.addMessage("The "+name+" disrupts the illusion", MessageType::SPELL);
+        state.addMessage("The " + type->name + " disrupts the illusion", MessageType::SPELL);
     } else if (diffTile == Tile::BLANK) {
         pos = diffPos;
     }

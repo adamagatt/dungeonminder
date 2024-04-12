@@ -16,7 +16,6 @@ namespace Utils {
     int getDirection();
     TCOD_key_t getKeyPress();
 
-
     int signum(int num);
 
     Position randomMapPosition(int border = 0);

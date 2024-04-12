@@ -5,6 +5,7 @@
 #include "monster.hpp"
 
 #include <algorithm>
+#include <string>
 
 GameState::GameState() : hero{std::make_unique<Hero>(*this)} {
    using namespace std::string_literals;
@@ -90,12 +91,14 @@ bool GameState::hitMonster(int x, int y, int amount) {
    if (curMonster == nullptr)
       return false;
 
+
+   const MonsterType* type = curMonster->type;
    curMonster->health -= amount;
    if (curMonster->health <= 0) {
-      if (curMonster->symbol == '*' || curMonster->symbol=='M' || curMonster->symbol=='@') {
+      if (type->symbol == '*' || type->symbol=='M' || type->symbol=='@') {
          bossDead = true;
       }
-      addMessage("The " + curMonster->name + " dies!", MessageType::NORMAL);
+      addMessage("The " + type->name + " dies!", MessageType::NORMAL);
       if (hero->target == curMonster) {
          hero->target = nullptr;
          hero->computePath();
@@ -112,7 +115,7 @@ bool GameState::hitMonster(int x, int y, int amount) {
 
    } else if (curMonster->affectedBy(Condition::HALTED)) {
       curMonster->conditionTimers[Condition::HALTED] = 0;
-      addMessage("The attack allows the "+curMonster->name + " to move again", MessageType::SPELL); 
+      addMessage("The attack allows the " + type->name + " to move again", MessageType::SPELL); 
    }
    return false;
 }
@@ -121,71 +124,16 @@ bool GameState::hitMonster(const Position& pos, int amount) {
    return hitMonster(pos.x, pos.y, amount);
 }
 
-void GameState::addMonster(const std::string& name, char symbol, int x, int y, int health, int damage, bool ranged, const std::string& rangedName, float range, int wait, bool portalSpawned) {
-   auto& curMonster = monsterList.emplace_back();
-   curMonster.name = name;
-   curMonster.symbol = symbol;
-   curMonster.pos = {x, y};
-   curMonster.health = health;
-   curMonster.maxhealth = health;
-   curMonster.range = range;
-   curMonster.damage = damage;
-   curMonster.wait = wait;
-   curMonster.ranged = ranged;
-   curMonster.rangedName = rangedName;
-   curMonster.timer = 0;
-   curMonster.angry = false;
-   curMonster.maimed = false;
-   curMonster.portalTimer = portalSpawned?PORTAL_TIME:0;
-   for (auto& [condition, timer] : curMonster.conditionTimers) {
-      timer = 0;
-   }
-
-   setTile({x, y}, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
+void GameState::addMonster(const MonsterType& type, const Position& pos, bool portalSpawned) {
+   monsterList.emplace_back(type, pos, portalSpawned);
+   setTile(pos, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
 }
 
-void GameState::addSpecifiedMonster(int tempx, int tempy, int number, bool portalSpawned) {
-   switch (number){
-      case 0:
-         addMonster("rat", 'r', tempx, tempy, 3, 1, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 1:
-         addMonster("kobold", 'k', tempx, tempy, 4, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 2:
-         addMonster("sprite", 's', tempx, tempy, 5, 1, false, " ", 0.0f, 1, portalSpawned);
-         break;
-      case 3:
-         addMonster("dwarf", 'd', tempx, tempy, 9, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 4:
-         addMonster("skeleton archer", 'a', tempx, tempy, 5, 1, true, "shoots an arrow", 5.0f, 3, portalSpawned);
-         break;
-      case 5:
-         addMonster("ghost", 'g', tempx, tempy, 7, 2, false, "", 0.0f, 1, portalSpawned);
-         break;
-      case 6:
-         addMonster("orc", 'o', tempx, tempy, 10, 3, true, "throws an axe", 6.0f, 3, portalSpawned);
-         break;
-      case 7:
-         addMonster("ogre", 'O', tempx, tempy, 15, 4, false, "", 0.0f, 2, portalSpawned);
-         break;
-      case 8:
-         addMonster("dragon", 'D', tempx, tempy, 20, 6, true, "breathes fire", 3.0f, 4, portalSpawned);
-         break;
-      case 9:
-         addMonster("troll", 'T', tempx, tempy, 30, 2, false, " ", 0.0f, 2, portalSpawned);
-         break;
-      case 10:
-         addMonster("wraith", 'W', tempx, tempy, 5, 1, true, "gazes", 12.0f, 2, portalSpawned);
-         break;
-      case 11:
-         addMonster("golem", 'G', tempx, tempy, 40, 8, false, " ", 0.0f, 6, portalSpawned);
-         break;
-      case 12:
-         addMonster("hunter", 'H', tempx, tempy, 5, 5, false, " ", 0.0f, 1, portalSpawned);
-         break;
-   }
+void GameState::addSpecifiedMonster(const Position& pos, int number, bool portalSpawned) {
+   if (number < 0 || number >= MONSTER_TYPE_COUNT) return;
+   const MonsterType& type = MONSTER_TYPES[number];
+
+   addMonster(type, pos, portalSpawned);
 }
 
 int GameState::getHeroSpec() const {

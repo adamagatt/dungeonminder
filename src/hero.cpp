@@ -216,7 +216,7 @@ bool Hero::move() {
                target = game.findMonster(dest.x, dest.y);
                char buffer[20];
                sprintf(buffer, "%d", damage);
-               game.addMessage("The hero hits the " + target->name + " for " + buffer + " damage", MessageType::NORMAL);
+               game.addMessage("The hero hits the " + target->type->name + " for " + buffer + " damage", MessageType::NORMAL);
                int selfDamage = 0;
                if (items.contains(Item::carelessGauntlets) && (target->health < damage)) {
                   selfDamage = damage - target->health;
@@ -328,7 +328,7 @@ bool Hero::move() {
             };
          }
          int randomMonster = Utils::randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
-         game.addSpecifiedMonster(l.x, l.y, randomMonster, true);
+         game.addSpecifiedMonster(l, randomMonster, true);
       }
    }
    // Effects of the belt of trap attraction
@@ -379,7 +379,7 @@ bool Hero::move() {
                   } else if (trapTile == Tile::MONSTER) {
                      testTile = Tile::BLANK;
                      Monster* target = game.findMonster(dir.offset(i, j));
-                     game.addMessage("A trap is pulled onto the " + target->name+ "!", MessageType::NORMAL);
+                     game.addMessage("A trap is pulled onto the " + target->type->name +  "!", MessageType::NORMAL);
                      game.hitMonster(target->pos, 4);
                   }
                }

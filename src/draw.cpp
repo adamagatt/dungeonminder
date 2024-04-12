@@ -871,8 +871,8 @@ void Draw::screen() {
    for (const Monster& monster : state.monsterList) {
       // If the monster has spawned
       if (monster.portalTimer == 0) {
-         console.setDefaultForeground(TCODColor(monster.health*100/monster.maxhealth+155, 155-(155*monster.health/monster.maxhealth), 155-(155*monster.health/monster.maxhealth)));
-         console.putChar(monster.pos.x+LEFT, monster.pos.y+TOP, monster.symbol, TCOD_BKGND_NONE);
+         console.setDefaultForeground(TCODColor(monster.health*100/monster.type->maxHealth+155, 155-(155*monster.health/monster.type->maxHealth), 155-(155*monster.health/monster.type->maxHealth)));
+         console.putChar(monster.pos.x+LEFT, monster.pos.y+TOP, monster.type->symbol, TCOD_BKGND_NONE);
       }
    }
 

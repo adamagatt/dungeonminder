@@ -4,6 +4,7 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "entity.hpp"
 #include "game_state.hpp"
 #include "monster.hpp"
 #include "position.hpp"
@@ -40,7 +41,7 @@ class HeroPathCallback : public ITCODPathCallback {
    const GameState& state;
 };
 
-class Hero {
+class Hero : public Entity {
    public:
    Hero(GameState& game);
 
@@ -55,17 +56,16 @@ class Hero {
    bool isAdjacent(const Position& pos) const;
    bool inSpellRadius() const;
 
-   Position pos;
-
    enum class Goal {chest1, chest2, exit} currentGoal;
 
-   
-   int wait, timer, health, damage;
-   Monster* target;
-   int pathstep;
+   int damage;
+   int wait;
    bool dead, slow, blinking;
    int hasteTimer, pacifismTimer, shieldTimer, regenTimer, meditationTimer, seeInvisibleTimer, summonMonsterTimer;
+
    std::unordered_set<Item> items;
+   int pathstep;
+   Monster* target;
 
    static const std::array<std::string, 5> heroEntry;
    static const std::array<std::string, 10> heroKills;

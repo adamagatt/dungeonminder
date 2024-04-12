@@ -4,8 +4,11 @@
 #include "libtcod.hpp"
 
 #include <array>
-#include <unordered_map>
+#include <optional>
 #include <string>
+#include <unordered_map>
+
+using namespace std::string_literals;
 
 constexpr int MENU_X = 7;
 constexpr int MENU_Y = 7;
@@ -181,5 +184,42 @@ enum class Tile {
     FIELD,
     PORTAL
 };
+
+struct RangedAttack {float distance; std::string description;};
+
+struct MonsterType {
+   std::string name;
+   char symbol;
+   int maxHealth;
+   int damage;
+   int wait;
+   std::optional<RangedAttack> rangedAttack;
+
+   inline bool operator==(const MonsterType& other) {
+      return name == other.name;
+   }
+};
+
+constexpr int MONSTER_TYPE_COUNT = 13;
+
+const std::array<MonsterType, MONSTER_TYPE_COUNT> MONSTER_TYPES {{
+   {"rat",             'r',  3, 1, 2, std::nullopt},
+   {"kobold",          'k',  4, 2, 2, std::nullopt},
+   {"sprite",          's',  5, 1, 1, std::nullopt},
+   {"dwarf",           'd',  9, 2, 2, std::nullopt},
+   {"skeleton archer", 'a',  5, 1, 3, RangedAttack{5.0f, "shoots an arrow"s}},
+   {"ghost",           'g',  7, 2, 1, std::nullopt},
+   {"orc",             'o', 10, 3, 3, RangedAttack{6.0f, "throws an axe"s}},
+   {"ogre",            'O', 15, 4, 2, std::nullopt},
+   {"dragon",          'D', 20, 6, 4, RangedAttack{3.0f, "breathes fire"s}},
+   {"troll",           'T', 30, 2, 2, std::nullopt},
+   {"wraith",          'W',  5, 1, 2, RangedAttack{12.0f, "gazes"s}},
+   {"golem",           'G', 40, 8, 6, std::nullopt},
+   {"hunter",          'H',  5, 5, 1, std::nullopt}
+}};
+
+const MonsterType MasterSummonerType {"Master Summoner", '*', 20, 2, 15, std::nullopt};
+const MonsterType NobleHeroType {"Noble Hero", '@', 30, 3, 2, std::nullopt};
+const MonsterType EvilMageType {"Evil Mage", 'M', 15, 4, 5, RangedAttack{20.0f, "shoots lightning"s}};
 
 #endif

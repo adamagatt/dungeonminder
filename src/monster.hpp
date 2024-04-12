@@ -4,6 +4,7 @@
 #include "libtcod.hpp"
 
 #include "config.hpp"
+#include "entity.hpp"
 #include "game_state.hpp"
 #include "position.hpp"
 
@@ -12,29 +13,24 @@
 #include <unordered_map>
 #include <variant>
 
-class Monster {
+class Monster : public Entity {
    public:
-   Monster();
+   Monster(const MonsterType& type, const Position& pos, bool portalSpawned);
+
    bool operator==(const Monster& other) const;
    [[nodiscard]] bool affectedBy(Condition condition) const;
    void takeTurn(GameState& state);
 
-   std::string name;
-   char symbol;
-   Position pos;
-   int health, damage, timer, wait;
+   const MonsterType* type;
    int portalTimer;
-   bool angry;
-   int maxhealth;
-   bool ranged, maimed;
-   float range;
-   std::string rangedName;
+   bool angry {false};
+   bool maimed {false};
    std::unordered_map<Condition, int> conditionTimers;
 
    private:
-   struct RangedAttack{};
+   struct MakeRangedAttack{};
    struct MoveTo{Position pos;};
-   using ActionDecision = std::variant<RangedAttack, MoveTo>;
+   using ActionDecision = std::variant<MakeRangedAttack, MoveTo>;
 
    void takeAction(GameState& state);
    ActionDecision decideOnAction(const GameState& state);
@@ -45,7 +41,7 @@ class Monster {
    inline int getDamageDealt() {
       return std::max(
          0,
-         this->damage - static_cast<int>(std::ceil(static_cast<double>(conditionTimers[Condition::WEAKENED])/CONDITION_TIMES.at(Condition::WEAKENED)))
+         type->damage - static_cast<int>(std::ceil(static_cast<double>(conditionTimers[Condition::WEAKENED])/CONDITION_TIMES.at(Condition::WEAKENED)))
       );
    }
 };
