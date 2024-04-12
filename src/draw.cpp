@@ -392,7 +392,6 @@ void Draw::upgradeMenu() {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
-   screen();
    TCODConsole::blit(backboard.get(), 0, 0, 66, 35, &console, MENU_X, MENU_Y);
 
    // Draw the borders
@@ -734,7 +733,7 @@ void Draw::victoryScreen() {
    console.flush();
 }
 
-void Draw::screen() {
+void Draw::screen(int level) {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
 
@@ -771,7 +770,7 @@ void Draw::screen() {
    {
       Utils::WithBackgroundSet set(console);
       console.print(LEFT+MAP_WIDTH/2-7, 1, " DungeonMinder "s); 
-      console.printf(LEFT+MAP_WIDTH/2+25, 1, " Level %d ", state.level); 
+      console.printf(LEFT+MAP_WIDTH/2+25, 1, " Level %d ", level); 
    }
    // Draw the key instructions at the bottom
 
@@ -841,7 +840,7 @@ void Draw::screen() {
    console.setDefaultBackground(TCODColor::black);
 
    // Show the stairs
-   if (state.level < 10) {
+   if (level < 10) {
       console.setDefaultForeground(TCODColor::white);
       console.putChar(state.map.exitGoal.x+LEFT, state.map.exitGoal.y-1+TOP, '>', TCOD_BKGND_NONE);
    }

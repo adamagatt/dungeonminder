@@ -12,10 +12,14 @@ int main() {
    // Creates the console
    TCODConsole::initRoot(80,60,"DungeonMinder",false);
    TCODSystem::setFps(25);
+   bool fullscreen = false;
 
 gameLoop:
-   for (state.level = 1; state.level <= 10 && !TCODConsole::isWindowClosed(); state.level++) {
-      if (state.level%3 == 0) {
+   for (int level = 1; level <= 10 && !TCODConsole::isWindowClosed(); ++level) {
+      bool isLastLevel = level == 10;
+
+      draw.screen(level);
+      if (level%3 == 0) {
          presentUpgradeMenu();
       }
       bool nextlevel = false;
@@ -23,7 +27,7 @@ gameLoop:
 
       draw.generateMapNoise();
 
-      state.createMap();
+      state.createMap(level);
 
       // Initialise the hero and player
       Position heroPos = Utils::randomMapPosWithCondition(
@@ -33,41 +37,17 @@ gameLoop:
 
       state.setTile(heroPos.offset(0, 1), Tile::STAIRS_UP);
 
-
       Hero& hero = *(state.hero);
-      Player& player = state.player;
-
-      player.pos = heroPos.offset(0, -1);
-      state.tileAt(player.pos) = Tile::PLAYER;
-      hero.pos = heroPos;
+      hero.resetForNewLevel(heroPos);
       state.tileAt(hero.pos) = Tile::HERO;
-      hero.health = 10;
-      hero.damage = 5;
-      hero.timer = 1;
-      hero.wait = 2;
-      hero.hasteTimer = 0;
-      hero.meditationTimer = 0;
-      hero.seeInvisibleTimer = 0;
-      hero.slow = false;
-      hero.blinking = false;
-      hero.regenTimer = 0;
-      hero.shieldTimer = 0;
-      hero.pacifismTimer = 0;
-      hero.target = nullptr;
 
-      hero.pathstep = 0;
-      hero.dead = false;
-      hero.items.clear();
-      player.heroMana = 5*MANA_BLIP_SIZE;
-      player.monsterMana = 5*MANA_BLIP_SIZE;
-      player.worldMana = 5*MANA_BLIP_SIZE;
+      Player& player = state.player;
+      player.resetForNewLevel(heroPos.offset(0, -1));
+      state.tileAt(player.pos) = Tile::PLAYER;
 
       state.illusion = {-1, -1};
-      state.map.chest1Goal = {-1, -1};
-      state.map.chest2Goal = {-1, -1};
-      state.map.exitGoal = {-1, -1};
 
-      if (state.level < 10) {
+      if (!isLastLevel) {
          // Place the stairs
          Position stairsPos = Utils::randomMapPosWithCondition(
             [&hero](const auto& pos){return state.isEmptyPatch(pos) && Utils::dist(hero.pos, pos) >= 20;}
@@ -102,16 +82,16 @@ gameLoop:
          state.tileAt(trapPos) = Tile::TRAP;
       }
 
-      if (state.level < 10) {
-         generateMonsters(state.level, 3);
-      } else {
+      if (isLastLevel) {
          generateMonsters(3, 1);
          generateEndBoss();
+      } else {
+         generateMonsters(level, 3);
       }
 
       // Draw the map
       state.map.model->computeFov(hero.pos.x, hero.pos.y);
-      draw.screen();
+      draw.screen(level);
 
       // Game loop
       bool turnTaken = false;
@@ -169,9 +149,9 @@ gameLoop:
             fullscreen = !fullscreen;
             console.setFullscreen(fullscreen);
          } else if (key.vk == TCODK_TAB) {
-            turnTaken = castSpell('j');
+            turnTaken = castSpell('j', level, isLastLevel);
          } else if (key.c == 'q' || key.c == 'w' || key.c == 'e' || key.c == 'a' || key.c == 's' || key.c == 'd' || key.c == 'z' || key.c == 'x' || key.c == 'c') {
-            turnTaken = castSpell(key.c);
+            turnTaken = castSpell(key.c, level, isLastLevel);
          } else if (key.c == 'm') {
             draw.showMessageHistory();
             Utils::getKeyPress();
@@ -234,9 +214,9 @@ gameLoop:
             }
             // If the hero isn't dead, make him move
             if (hero.dead == false) {
-               nextlevel = hero.move();
+               nextlevel = hero.move(level);
                // If the hero finished the level, go to the next level
-               if (state.level == 10 && state.bossDead) {
+               if (isLastLevel && state.bossDead) {
                   nextlevel = true;
                }
             }
@@ -264,17 +244,17 @@ gameLoop:
                }
             }
          }
-         if (nextlevel && state.level < 10) {
-            // Display the next state.level
+         if (nextlevel && !isLastLevel) {
+            // Display the next level
             state.addMessage("Hero: " + Hero::heroExit[Utils::randGen->getInt(0, 4)], MessageType::HERO);
             state.addMessage("The hero descends to the next level of the dungeon!", MessageType::IMPORTANT);
          } else {
             state.map.model->computeFov(hero.pos.x, hero.pos.y);
          }
-         draw.screen();
+         draw.screen(level);
       }
+      draw.screen(level);
    }
-   draw.screen();
    if (state.bossDead) {
       draw.victoryScreen();
       for (TCOD_key_t key = Utils::getKeyPress(); key.vk != TCODK_ESCAPE; key = Utils::getKeyPress()) { }
@@ -283,8 +263,8 @@ gameLoop:
 
 void presentUpgradeMenu() {
    Player& player = state.player;
-   state.addMessage("You are now experienced enough to specialise your magic!", MessageType::IMPORTANT);
 
+   state.addMessage("You are now experienced enough to specialise your magic!", MessageType::IMPORTANT);
    draw.upgradeMenu();
 
    // Get keyboard input
@@ -341,7 +321,7 @@ void presentUpgradeMenu() {
    }
 }
 
-bool castSpell(char spellChar) {
+bool castSpell(char spellChar, int level, bool isLastLevel) {
    using namespace std::string_literals;
    auto& console = *(TCODConsole::root);
    Player& player = state.player;
@@ -359,7 +339,7 @@ bool castSpell(char spellChar) {
    switch (spellChar) {
       case 'q':
          if (player.heroMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][player.heroSpec][0]);
+            spellCast = effectSpell(spellLists[0][player.heroSpec][0], level, isLastLevel);
             if (spellCast) player.heroMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -367,7 +347,7 @@ bool castSpell(char spellChar) {
          break;
       case 'a':
          if (player.heroMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][player.heroSpec][1]);
+            spellCast = effectSpell(spellLists[0][player.heroSpec][1], level, isLastLevel);
             if (spellCast) player.heroMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -375,7 +355,7 @@ bool castSpell(char spellChar) {
          break;
       case 'z':
          if (player.heroMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[0][player.heroSpec][2]);
+            spellCast = effectSpell(spellLists[0][player.heroSpec][2], level, isLastLevel);
             if (spellCast) player.heroMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -383,7 +363,7 @@ bool castSpell(char spellChar) {
          break;
       case 'w':
          if (player.monsterMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][player.monsterSpec][0]);
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][0], level, isLastLevel);
             if (spellCast) player.monsterMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -391,7 +371,7 @@ bool castSpell(char spellChar) {
          break;
       case 's':
          if (player.monsterMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][player.monsterSpec][1]);
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][1], level, isLastLevel);
             if (spellCast) player.monsterMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -399,7 +379,7 @@ bool castSpell(char spellChar) {
          break;
       case 'x':
          if (player.monsterMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[1][player.monsterSpec][2]);
+            spellCast = effectSpell(spellLists[1][player.monsterSpec][2], level, isLastLevel);
             if (spellCast) player.monsterMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -407,7 +387,7 @@ bool castSpell(char spellChar) {
          break;
       case 'e':
          if (player.worldMana >= MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][player.worldSpec][0]);
+            spellCast = effectSpell(spellLists[2][player.worldSpec][0], level, isLastLevel);
             if (spellCast) player.worldMana -= MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -415,7 +395,7 @@ bool castSpell(char spellChar) {
          break;
       case 'd':
          if (player.worldMana >= 3*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][player.worldSpec][1]);
+            spellCast = effectSpell(spellLists[2][player.worldSpec][1], level, isLastLevel);
             if (spellCast) player.worldMana -= 3*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -423,7 +403,7 @@ bool castSpell(char spellChar) {
          break;
       case 'c':
          if (player.worldMana >= 5*MANA_BLIP_SIZE) {
-            spellCast = effectSpell(spellLists[2][player.worldSpec][2]);
+            spellCast = effectSpell(spellLists[2][player.worldSpec][2], level, isLastLevel);
             if (spellCast) player.worldMana -= 5*MANA_BLIP_SIZE;
          } else {
             state.addMessage("Insufficient power", MessageType::SPELL);
@@ -436,20 +416,18 @@ bool castSpell(char spellChar) {
    return spellCast;
 }
 
-bool effectSpell(Spell chosenSpell) {
+bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
    Hero& hero = *(state.hero);
 
    int spellCast = false;
    int direction;
    bool itemDropped = false;
    bool minePlaced = false;
-   
-   draw.screen();
 
    const Position& playerPos = state.player.pos;
    switch (chosenSpell) {
       case Spell::PACIFISM:
-         if (state.level < 10) {
+         if (!isLastLevel) {
             if (hero.inSpellRadius()) {
                if (hero.dead) {
                   state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -466,7 +444,7 @@ bool effectSpell(Spell chosenSpell) {
                state.addMessage("You are too far from the hero!", MessageType::SPELL);
             }
          } else {
-            state.addMessage("The hero is too enCondition::RAGED to be pacified!", MessageType::SPELL);
+            state.addMessage("The hero is too enraged to be pacified!", MessageType::SPELL);
          }
          break;
       case Spell::SPEED:
@@ -673,8 +651,8 @@ bool effectSpell(Spell chosenSpell) {
                   ? (BLINK_MOVES / 2)
                   : BLINK_MOVES;
                for (int i = 0; i < limit; ++i) {
-                  hero.move();
-                  draw.screen();
+                  hero.move(level);
+                  draw.screen(level);
                   TCODSystem::sleepMilli(10);
                }
                hero.blinking = false;
@@ -986,7 +964,6 @@ bool effectSpell(Spell chosenSpell) {
          break;
    }
 
-   draw.screen();
    return spellCast;
 }
 

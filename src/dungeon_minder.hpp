@@ -7,14 +7,10 @@
 #include "draw.hpp"
 #include "game_state.hpp"
 
-using namespace std::string_literals;
-
-bool fullscreen = false;
-
 /** Player */
 void presentUpgradeMenu();
-bool castSpell(char spellChar);
-bool effectSpell(Spell);
+bool castSpell(char spellChar, int level, bool isLastLevel);
+bool effectSpell(Spell chosenSpell, int level, bool isLastLevel);
 
 /** Monster */
 void generateMonsters(int, int);

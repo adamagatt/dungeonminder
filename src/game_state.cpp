@@ -22,7 +22,7 @@ void GameState::addMessage(const std::string& message, MessageType type) {
    messageList.push_back({message, type});
 }
 
-void GameState::createMap() {
+void GameState::createMap(int level) {
    map.createMap(level);
 }
 

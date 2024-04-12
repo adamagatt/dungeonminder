@@ -45,7 +45,8 @@ class Hero : public Entity {
    public:
    Hero(GameState& game);
 
-   bool move();
+   void resetForNewLevel(const Position& startPos);
+   bool move(int level);
    void giveItem();
    void computePath();
    bool gainHealth(int);

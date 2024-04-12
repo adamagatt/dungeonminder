@@ -11,7 +11,7 @@ class Draw {
    public:
    Draw(const GameState& state);
 
-   void screen();
+   void screen(int level);
    void spellMenu();
    void upgradeMenu();
    void victoryScreen();

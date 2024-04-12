@@ -23,7 +23,7 @@ class GameState {
 
    void addMessage(const std::string& message, MessageType type);
    
-   void createMap();
+   void createMap(int level);
    [[nodiscard]] Tile& tileAt(const Position& pos);
    [[nodiscard]] const Tile& tileAt(const Position& pos) const;
    void setTile(const Position& pos, Tile tile);
@@ -52,7 +52,6 @@ class GameState {
    std::vector<Monster> monsterList;
    std::unique_ptr<Hero> hero;
    
-   int level;
    Map map;
    bool bossDead {false};
    Position illusion;

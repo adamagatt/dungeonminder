@@ -10,6 +10,26 @@ Hero::Hero(GameState& game) :
    heroPathCallback(game)
    { }
 
+void Hero::resetForNewLevel(const Position& startPos) {
+   pos = startPos;
+   health = 10;
+   damage = 5;
+   timer = 1;
+   wait = 2;
+   hasteTimer = 0;
+   meditationTimer = 0;
+   seeInvisibleTimer = 0;
+   slow = false;
+   blinking = false;
+   regenTimer = 0;
+   shieldTimer = 0;
+   pacifismTimer = 0;
+   target = nullptr;
+   pathstep = 0;
+   dead = false;
+   items.clear();
+}
+
 bool Hero::checkWin() const {
    bool result = false;
    if (currentGoal == Goal::exit && pos == game.map.exitGoal && !dead) {
@@ -114,7 +134,7 @@ void Hero::computePath() {
    pathstep = 0;
 }
 
-bool Hero::move() {
+bool Hero::move(int level) {
    bool nextLevel = false;
    if (meditationTimer == 0) {
       // If the hero is ready to move
@@ -320,14 +340,10 @@ bool Hero::move() {
    if (summonMonsterTimer > 0) {
       summonMonsterTimer--;
       if (game.monsterList.size() < MAX_MONSTERS && summonMonsterTimer%15 == 1) {
-         Position l{0, 0};
-         while (game.tileAt(l) != Tile::BLANK || Utils::dist(pos, l) > 10) {
-            l = {
-               Utils::randGen->getInt(0, MAP_WIDTH-1),
-               Utils::randGen->getInt(0, MAP_HEIGHT-1)
-            };
-         }
-         int randomMonster = Utils::randGen->getInt((game.level/2+1)-1, (game.level/2+1)+3);
+         Position l = Utils::randomMapPosWithCondition([this](const auto& test){
+            return game.tileAt(test) == Tile::BLANK && Utils::dist(pos, test) <= 10;}
+         );
+         int randomMonster = Utils::randGen->getInt((level/2+1)-1, (level/2+1)+3);
          game.addSpecifiedMonster(l, randomMonster, true);
       }
    }
