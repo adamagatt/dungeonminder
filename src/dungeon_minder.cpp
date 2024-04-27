@@ -83,10 +83,10 @@ gameLoop:
       }
 
       if (isLastLevel) {
-         generateMonsters(3, 1);
-         generateEndBoss();
+         state.generateMonsters(3, 1);
+         state.createEndBoss();
       } else {
-         generateMonsters(level, 3);
+         state.generateMonsters(level, 3);
       }
 
       // Draw the map
@@ -965,48 +965,6 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
    }
 
    return spellCast;
-}
-
-void generateMonsters(int level, int amount) {
-   // Clear all existing monsters
-   state.monsterList.clear();
-   Position temp {0, 0};
-   for (int a = 0; a < 4; a++) {
-      for (int i = 0; i < amount; i++) {
-         temp = {0, 0};
-         while (state.tileAt(temp) != Tile::BLANK) {
-            int x = (a/2 == 0)
-               ? Utils::randGen->getInt(0, (MAP_WIDTH-1)/2)
-               : Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
-            int y = (a%2 == 0)
-               ? Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2)
-               : Utils::randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
-            temp = {x, y};
-         }
-         int randomMonster = Utils::randGen->getInt(level-1, level+3);
-         state.addSpecifiedMonster(temp, randomMonster, false);
-      }
-   }
-}
-
-void generateEndBoss() {
-   Hero& hero = *(state.hero);
-   Position bossPos = Utils::randomMapPosWithCondition(
-      [&hero](const auto& pos){return state.tileAt(pos) == Tile::BLANK && Utils::dist(pos, hero.pos) >= 30;}
-   );
-   int boss = Utils::randGen->getInt(0, 2);
-   if (boss == 0) {
-      state.addMonster(MasterSummonerType, bossPos, false); 
-      state.addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);
-   } else if (boss == 1) {
-      state.addMonster(NobleHeroType, bossPos, false); 
-      state.addMessage("Noble Hero: I have made it to the treasure first, my boastful rival.", MessageType::VILLAIN);
-      state.addMessage("Noble Hero: I wish you no harm, do not force me to defend myself.", MessageType::VILLAIN);
-   } else {
-      state.addMonster(EvilMageType, bossPos, false); 
-      state.addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
-   }
-   state.map.exitGoal = bossPos;
 }
 
 bool castEffectSpellAtMonster(Condition curCondition, bool append) {

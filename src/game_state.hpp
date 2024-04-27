@@ -36,8 +36,12 @@ class GameState {
    [[nodiscard]] Monster* findMonster(const Position& p);
    [[nodiscard]] Monster* findMonster(int x, int y);
    Monster* heroFindMonster();
+
+   void createEndBoss();
+   void generateMonsters(int level, int amount);
    void addMonster(const MonsterType& type, const Position& pos, bool portalSpawned);
    void addSpecifiedMonster(const Position& pos, int number, bool portalSpawned);
+   
    bool hitMonster(int x, int y, int amount);
    bool hitMonster(const Position& pos, int amount);
 

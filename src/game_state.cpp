@@ -124,18 +124,6 @@ bool GameState::hitMonster(const Position& pos, int amount) {
    return hitMonster(pos.x, pos.y, amount);
 }
 
-void GameState::addMonster(const MonsterType& type, const Position& pos, bool portalSpawned) {
-   monsterList.emplace_back(type, pos, portalSpawned);
-   setTile(pos, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
-}
-
-void GameState::addSpecifiedMonster(const Position& pos, int number, bool portalSpawned) {
-   if (number < 0 || number >= MONSTER_TYPE_COUNT) return;
-   const MonsterType& type = MONSTER_TYPES[number];
-
-   addMonster(type, pos, portalSpawned);
-}
-
 int GameState::getHeroSpec() const {
    return player.heroSpec;
 }
@@ -158,4 +146,61 @@ int GameState::getWorldSpec() const {
 
 void GameState::setWorldSpec(int worldSpec) {
    player.worldSpec = worldSpec;
+}
+
+void GameState::addMonster(const MonsterType& type, const Position& pos, bool portalSpawned) {
+   monsterList.emplace_back(type, pos, portalSpawned);
+   setTile(pos, portalSpawned ? Tile::PORTAL : Tile::MONSTER);
+}
+
+void GameState::addSpecifiedMonster(const Position& pos, int number, bool portalSpawned) {
+   if (number < 0 || number >= MONSTER_TYPE_COUNT) return;
+   const MonsterType& type = MONSTER_TYPES[number];
+
+   addMonster(type, pos, portalSpawned);
+}
+
+void GameState::generateMonsters(int level, int amount) {
+   // Clear all existing monsters
+   monsterList.clear();
+   Position temp {0, 0};
+   for (int a = 0; a < 4; a++) {
+      for (int i = 0; i < amount; i++) {
+         temp = {0, 0};
+         while (tileAt(temp) != Tile::BLANK) {
+            int x = (a/2 == 0)
+               ? Utils::randGen->getInt(0, (MAP_WIDTH-1)/2)
+               : Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
+            int y = (a%2 == 0)
+               ? Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2)
+               : Utils::randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
+            temp = {x, y};
+         }
+         int randomMonster = Utils::randGen->getInt(level-1, level+3);
+         addSpecifiedMonster(temp, randomMonster, false);
+      }
+   }
+}
+
+void GameState::createEndBoss() {
+   Position bossPos = Utils::randomMapPosWithCondition(
+      [this](const auto& pos){return tileAt(pos) == Tile::BLANK && Utils::dist(pos, hero->pos) >= 30;}
+   );
+   map.exitGoal = bossPos;
+
+   switch (Utils::randGen->getInt(0, 2)) {
+      case 0:
+         addMonster(MasterSummonerType, bossPos, false); 
+         addMessage("Master Summoner: You have come to your grave! I will bury you in monsters!", MessageType::VILLAIN);
+         break;
+      case 1:
+         addMonster(NobleHeroType, bossPos, false); 
+         addMessage("Noble Hero: I have made it to the treasure first, my boastful rival.", MessageType::VILLAIN);
+         addMessage("Noble Hero: I wish you no harm, do not force me to defend myself.", MessageType::VILLAIN);
+         break;
+      default:
+         addMonster(EvilMageType, bossPos, false); 
+         addMessage("Evil Mage: How did you make it this far?! DIE!!!", MessageType::VILLAIN);
+         break;
+   }
 }
