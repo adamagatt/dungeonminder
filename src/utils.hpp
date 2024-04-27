@@ -34,6 +34,11 @@ namespace Utils {
         private:
         TCODConsole& console;
     };
+
+    template <typename T, typename U, U N>
+    const T& randomFrom(const std::array<T, N>&  input) {
+        return input[Utils::randGen->getInt(0, N-1)];
+    };    
 }
 
 #endif

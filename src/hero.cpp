@@ -43,7 +43,7 @@ void Hero::giveItem() {
    const Item itemFound = static_cast<Item>(itemIdx);
    // Display messages
    game.addMessage("The hero finds " + ITEM_NAME.at(itemFound) + "!", MessageType::IMPORTANT);
-   game.addMessage("Hero: " + heroItem[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+   randomSay(heroItem);
    // Apply immediate effects of any item
    switch (itemFound) {
       case Item::scrollEarthquake:
@@ -145,7 +145,7 @@ bool Hero::move(int level) {
          // If the hero can see the player
          if (seeInvisibleTimer > 0 && Utils::dist(pos, game.player.pos) < 2 && game.map.model->isInFov(pos.x, pos.y)) {
             diff = pos.offset(-game.player.pos.x, -game.player.pos.y);
-            game.addMessage("Hero: " + heroScared[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+            randomSay(heroScared);
          } else if (game.illusion.x != -1 && game.map.model->isInFov(game.illusion.x, game.illusion.y)) {
             // If the hero sees the illusion, it takes priority
             int ptx = 0, pty = 0;
@@ -169,7 +169,7 @@ bool Hero::move(int level) {
                target = game.heroFindMonster();
             }
             if (target != nullptr) {
-               game.addMessage("Hero: " + heroFight[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+               randomSay(heroFight);
                pathstep = 0;
                path.compute(pos.x, pos.y, target->pos.x, target->pos.y); 
             } else {
@@ -231,7 +231,7 @@ bool Hero::move(int level) {
                game.map.model->setProperties(dest.x, dest.y, true, false);
                computePath();
                game.map.model->setProperties(dest.x, dest.y, true, true);
-               game.addMessage("Hero: "+heroBump[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+               randomSay(heroBump);
             } else {
                target = game.findMonster(dest.x, dest.y);
                char buffer[20];
@@ -258,7 +258,7 @@ bool Hero::move(int level) {
 
                   }
                   if (!dead) {
-                     game.addMessage("Hero: "+heroKills[Utils::randGen->getInt(0, 9)], MessageType::HERO);
+                     randomSay(heroKills);
                      computePath();
                   }
                }
@@ -281,7 +281,7 @@ bool Hero::move(int level) {
             destTile = Tile::BLANK;
             game.illusion.x = -1; game.illusion.y = -1;
             game.addMessage("The hero disrupts the illusion", MessageType::SPELL);
-            game.addMessage("Hero: " + heroIllusion[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+            randomSay(heroIllusion);
          } else if (destTile == Tile::BLANK) {
             pos = dest;
          } else if (destTile == Tile::PLAYER) {

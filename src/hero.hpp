@@ -68,6 +68,11 @@ class Hero : public Entity {
    int pathstep;
    Monster* target;
 
+   template <typename T, typename U, U N>
+   void randomSay(const std::array<T, N>&  input) {
+      game.addMessage("Hero: " + Utils::randomFrom(input), MessageType::HERO);
+   };    
+
    static const std::array<std::string, 5> heroEntry;
    static const std::array<std::string, 10> heroKills;
    static const std::array<std::string, 10> heroFight;

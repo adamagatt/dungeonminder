@@ -23,7 +23,7 @@ gameLoop:
          presentUpgradeMenu();
       }
       bool nextlevel = false;
-      state.addMessage("Hero: " + Hero::heroEntry[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+      state.hero->randomSay(Hero::heroEntry);
 
       draw.generateMapNoise();
 
@@ -246,7 +246,7 @@ gameLoop:
          }
          if (nextlevel && !isLastLevel) {
             // Display the next level
-            state.addMessage("Hero: " + Hero::heroExit[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+            state.hero->randomSay(Hero::heroExit);
             state.addMessage("The hero descends to the next level of the dungeon!", MessageType::IMPORTANT);
          } else {
             state.map.model->computeFov(hero.pos.x, hero.pos.y);
@@ -582,7 +582,7 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
                }
                // If an item was dropped, the hero is healed
                if (itemDropped) {
-                  state.addMessage("Hero: " + Hero::heroCharity[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+                  hero.randomSay(Hero::heroCharity);
                   hero.gainHealth(10);
                   spellCast = true;
                } else {
@@ -910,7 +910,7 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
                               if (hero.health <= 0) {
                                  hero.die();
                               } else {
-                                 state.addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+                                 hero.randomSay(Hero::heroBlow);
                               }
                            } else {
                               step1Tile = Tile::BLANK;
@@ -920,7 +920,7 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
                            }
                         } else {
                            if (!hero.dead) {
-                              state.addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+                              hero.randomSay(Hero::heroBlow);
                            }
                         }
                      } else if (step1Tile == Tile::TRAP && (step2Tile == Tile::BLANK || step2Tile == Tile::HERO || step2Tile == Tile::MONSTER)) {
@@ -944,7 +944,7 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
                               if (hero.health <= 0) {
                                  hero.die();
                               } else {
-                                 state.addMessage("Hero: " + Hero::heroBlow[Utils::randGen->getInt(0, 4)], MessageType::HERO);
+                                 hero.randomSay(Hero::heroBlow);
                               }
                            } else {
                               state.addMessage("You blow a trap into the hero's corpse!", MessageType::SPELL);
