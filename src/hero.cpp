@@ -12,21 +12,25 @@ Hero::Hero(GameState& game) :
 
 void Hero::resetForNewLevel(const Position& startPos) {
    pos = startPos;
+   currentGoal = Goal::chest1;
+
    health = 10;
+   dead = false;
    damage = 5;
    timer = 1;
    wait = 2;
+   target = nullptr;
+   
    hasteTimer = 0;
    meditationTimer = 0;
    seeInvisibleTimer = 0;
-   slow = false;
-   blinking = false;
    regenTimer = 0;
    shieldTimer = 0;
    pacifismTimer = 0;
-   target = nullptr;
    pathstep = 0;
-   dead = false;
+   slow = false;
+   blinking = false;
+
    items.clear();
 }
 
