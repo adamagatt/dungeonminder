@@ -8,7 +8,58 @@ void Map::setTile(const Position& pos, Tile tile) {
    model->setProperties(pos.x, pos.y, visible, walkable);
 }
 
-void Map::createMap(int level) {
+Position Map::createLevel(int level, bool isLastLevel) {
+   createMapLayout(level);
+
+   Position heroPos = Utils::randomMapPosWithCondition(
+      [this](const auto& pos){return isEmptyPatch(pos);},
+      2
+   );
+
+   // Stairs is above hero and player is below
+   setTile(heroPos.offset(0, 1), Tile::STAIRS_UP);
+   setTile(heroPos, Tile::HERO);
+   setTile(heroPos.offset(0, -1), Tile::PLAYER);
+
+   if (!isLastLevel) {
+      // Place the stairs
+      Position stairsPos = Utils::randomMapPosWithCondition(
+         [this, &heroPos](const auto& pos){return isEmptyPatch(pos) && Utils::dist(heroPos, pos) >= 20;}
+      );
+      setTile(stairsPos, Tile::STAIRS);
+      exitGoal = stairsPos.offset(0, 1);
+      
+      // Place the chests
+      Position chest1Pos = Utils::randomMapPosWithCondition([this, &heroPos](const auto& pos){
+         return isEmptyPatch(pos) &&
+            Utils::dist(heroPos, pos) >= 20 &&
+            Utils::dist(exitGoal, pos) >= 20;
+      });
+      setTile(chest1Pos, Tile::CHEST);
+      chest1Goal = chest1Pos.offset(0, 1);
+
+      Position chest2Pos = Utils::randomMapPosWithCondition([this, &heroPos](const auto& pos){
+         return isEmptyPatch(pos) &&
+            Utils::dist(heroPos, pos) >= 20 &&
+            Utils::dist(chest1Goal, pos) >= 20 &&
+            Utils::dist(exitGoal, pos) >= 20;
+      });
+      setTile(chest2Pos, Tile::CHEST);
+      chest2Goal = chest2Pos.offset(0, 1);
+   }
+
+   // PLACE TRAPS
+   for (int i = 0; i < 10; i++) {
+      Position trapPos = Utils::randomMapPosWithCondition(
+         [this](const auto& pos){return tileAt(pos) == Tile::BLANK;}
+      );
+      tileAt(trapPos) = Tile::TRAP;
+   }
+
+   return heroPos;
+}
+
+void Map::createMapLayout(int level) {
     // Creates the map
     for (int i = 0; i < MAP_WIDTH; i++) {
         cloud[i].fill(0);
@@ -33,6 +84,20 @@ const Tile& Map::tileAt(const Position& pos) const {
 
 Tile& Map::tileAt(const Position& pos) {
     return tiles[pos.x][pos.y];
+}
+
+bool Map::isEmptyPatch(int x, int y) const {
+   return isEmptyPatch(Position(x, y));
+}
+
+bool Map::isEmptyPatch(const Position& pos) const {
+   if (pos.x <= 0 || pos.x >= MAP_WIDTH || pos.y <= 0 || pos.y >= MAP_HEIGHT)
+      return false;
+
+   return std::ranges::all_of(
+      Utils::offsets,
+      [this, &pos](const auto& offset){return tileAt(pos.offset(offset)) == Tile::BLANK;} 
+   );
 }
 
 void Map::openChest1() {
@@ -105,5 +170,7 @@ const std::unordered_map<const Tile, const std::pair<bool, bool>> Map::tilePrope
    {Tile::CHEST_OPEN, {true, false}},
    {Tile::FIELD, {false, false}},
    {Tile::PORTAL, {true, false}},
-   {Tile::ILLUSION, {true, true}}
+   {Tile::ILLUSION, {true, true}},
+   {Tile::HERO, {true, true}},
+   {Tile::PLAYER, {true, true}}
 };

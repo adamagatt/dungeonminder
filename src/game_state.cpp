@@ -22,8 +22,20 @@ void GameState::addMessage(const std::string& message, MessageType type) {
    messageList.push_back({message, type});
 }
 
-void GameState::createMap(int level) {
-   map.createMap(level);
+void GameState::createLevel(int level, bool isLastLevel) {
+   illusion = {-1, -1};
+
+   Position heroPos = map.createLevel(level, isLastLevel);
+
+   hero->resetForNewLevel(heroPos);
+   player.resetForNewLevel(heroPos.offset(0, -1));
+
+   if (isLastLevel) {
+      generateMonsters(3, 1);
+      createEndBoss();
+   } else {
+      generateMonsters(level, 3);
+   }
 }
 
 const Tile& GameState::tileAt(const Position& pos) const {
@@ -44,20 +56,6 @@ bool GameState::isInFov(int x, int y) const {
 
 bool GameState::isInFov(const Position& pos) const {
    return isInFov(pos.x, pos.y);
-}
-
-bool GameState::isEmptyPatch(int x, int y) const {
-   return isEmptyPatch(Position(x, y));
-}
-
-bool GameState::isEmptyPatch(const Position& pos) const {
-   if (pos.x <= 0 || pos.x >= MAP_WIDTH || pos.y <= 0 || pos.y >= MAP_HEIGHT)
-      return false;
-
-   return std::ranges::all_of(
-      Utils::offsets,
-      [this, &pos](const auto& offset){return tileAt(pos.offset(offset)) == Tile::BLANK;} 
-   );
 }
 
 Monster* GameState::findMonster(const Position& p) {

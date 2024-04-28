@@ -14,6 +14,9 @@ int main() {
    TCODSystem::setFps(25);
    bool fullscreen = false;
 
+   Hero& hero = *(state.hero);
+   Player& player = state.player;
+
 gameLoop:
    for (int level = 1; level <= 10 && !TCODConsole::isWindowClosed(); ++level) {
       bool isLastLevel = level == 10;
@@ -23,71 +26,11 @@ gameLoop:
          presentUpgradeMenu();
       }
       bool nextlevel = false;
-      state.hero->randomSay(Hero::heroEntry);
+      hero.randomSay(Hero::heroEntry);
 
       draw.generateMapNoise();
 
-      state.createMap(level);
-
-      // Initialise the hero and player
-      Position heroPos = Utils::randomMapPosWithCondition(
-         [](const auto& pos){return state.isEmptyPatch(pos);},
-         2
-      );
-
-      state.setTile(heroPos.offset(0, 1), Tile::STAIRS_UP);
-
-      Hero& hero = *(state.hero);
-      hero.resetForNewLevel(heroPos);
-      state.tileAt(hero.pos) = Tile::HERO;
-
-      Player& player = state.player;
-      player.resetForNewLevel(heroPos.offset(0, -1));
-      state.tileAt(player.pos) = Tile::PLAYER;
-
-      state.illusion = {-1, -1};
-
-      if (!isLastLevel) {
-         // Place the stairs
-         Position stairsPos = Utils::randomMapPosWithCondition(
-            [&hero](const auto& pos){return state.isEmptyPatch(pos) && Utils::dist(hero.pos, pos) >= 20;}
-         );
-         state.setTile(stairsPos, Tile::STAIRS);
-         state.map.exitGoal = stairsPos.offset(0, 1);
-         
-         // Place the chests
-         Position chest1Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
-            return state.isEmptyPatch(pos) &&
-                   Utils::dist(hero.pos, pos) >= 20 &&
-                   Utils::dist(state.map.exitGoal, pos) >= 20;
-         });
-         state.setTile(chest1Pos, Tile::CHEST);
-         state.map.chest1Goal = chest1Pos.offset(0, 1);
-
-         Position chest2Pos = Utils::randomMapPosWithCondition([&hero](const auto& pos){
-            return state.isEmptyPatch(pos) &&
-                   Utils::dist(hero.pos, pos) >= 20 &&
-                   Utils::dist(state.map.chest1Goal, pos) >= 20 &&
-                   Utils::dist(state.map.exitGoal, pos) >= 20;
-         });
-         state.setTile(chest2Pos, Tile::CHEST);
-         state.map.chest2Goal = chest2Pos.offset(0, 1);
-      }
-
-      // PLACE TRAPS
-      for (int i = 0; i < 10; i++) {
-         Position trapPos = Utils::randomMapPosWithCondition(
-            [](const auto& pos){return state.tileAt(pos) == Tile::BLANK;}
-         );
-         state.tileAt(trapPos) = Tile::TRAP;
-      }
-
-      if (isLastLevel) {
-         state.generateMonsters(3, 1);
-         state.createEndBoss();
-      } else {
-         state.generateMonsters(level, 3);
-      }
+      state.createLevel(level, isLastLevel);
 
       // Draw the map
       state.map.model->computeFov(hero.pos.x, hero.pos.y);
@@ -246,7 +189,7 @@ gameLoop:
          }
          if (nextlevel && !isLastLevel) {
             // Display the next level
-            state.hero->randomSay(Hero::heroExit);
+            hero.randomSay(Hero::heroExit);
             state.addMessage("The hero descends to the next level of the dungeon!", MessageType::IMPORTANT);
          } else {
             state.map.model->computeFov(hero.pos.x, hero.pos.y);

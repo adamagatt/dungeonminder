@@ -23,15 +23,13 @@ class GameState {
 
    void addMessage(const std::string& message, MessageType type);
    
-   void createMap(int level);
+   void createLevel(int level, bool isLastLevel);
    [[nodiscard]] Tile& tileAt(const Position& pos);
    [[nodiscard]] const Tile& tileAt(const Position& pos) const;
    void setTile(const Position& pos, Tile tile);
 
    [[nodiscard]] bool isInFov(int x, int y) const;
    [[nodiscard]] bool isInFov(const Position& pos) const;
-   [[nodiscard]] bool isEmptyPatch(int x, int y) const;
-   [[nodiscard]] bool isEmptyPatch(const Position& pos) const;
 
    [[nodiscard]] Monster* findMonster(const Position& p);
    [[nodiscard]] Monster* findMonster(int x, int y);
