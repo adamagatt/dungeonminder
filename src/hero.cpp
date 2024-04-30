@@ -112,17 +112,14 @@ void Hero::giveItem() {
 }
 
 bool Hero::gainHealth(int amount) {
-   int gained = false;
-   if (!(health == 8 && items.contains(Item::healthCap)) && !(health == 10 && !items.contains(Item::healthCap))) {
-      health += amount;
-      gained = true;
-      if (health > 8 && items.contains(Item::healthCap)) {
-         health = 8;
-      } else if (health > 10) {
-         health = 10;
-      }
-   }
-   return gained;
+   int maxHealth = items.contains(Item::healthCap) ? 8 : 10;
+
+   if (health == maxHealth)
+      return false;
+
+   health = std::min(health + amount, maxHealth);
+
+   return true;
 }
 
 void Hero::die() {

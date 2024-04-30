@@ -355,21 +355,18 @@ bool castSpell(char spellChar, int level, bool isLastLevel) {
       default:
          break;
    }
-   // CAST THE CHOSEN SPELL
+
    return spellCast;
 }
 
 bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
    Hero& hero = *(state.hero);
+   const Position& playerPos = state.player.pos;
 
    int spellCast = false;
-   int direction;
-   bool itemDropped = false;
-   bool minePlaced = false;
 
-   const Position& playerPos = state.player.pos;
    switch (chosenSpell) {
-      case Spell::PACIFISM:
+      case Spell::PACIFISM: {
          if (!isLastLevel) {
             if (hero.inSpellRadius()) {
                if (hero.dead) {
@@ -390,7 +387,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("The hero is too enraged to be pacified!", MessageType::SPELL);
          }
          break;
-      case Spell::SPEED:
+      } 
+      case Spell::SPEED: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -405,7 +403,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::HEAL:
+      }
+      case Spell::HEAL: {
          if (hero.inSpellRadius()) {
             if (hero.dead){
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -423,16 +422,20 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::BLIND:
+      }
+      case Spell::BLIND: {
          spellCast = castEffectSpellAtMonster(Condition::BLINDED, false);
          break;
-      case Spell::RAGE:
+      }
+      case Spell::RAGE: {
          spellCast = castEffectSpellAtMonster(Condition::RAGED, false);
          break;
-      case Spell::SLEEP:
+      }
+      case Spell::SLEEP: {
          spellCast = castEffectSpellAtMonster(Condition::SLEEPING, false);
          break;
-      case Spell::CLEAR:
+      }
+      case Spell::CLEAR: {
          for (int i = playerPos.x-1; i <= playerPos.x+1; i++) {
             for (int j = playerPos.y-1; j <= playerPos.y+1; j++) {
                if (i>=0 && j>=0 && i<MAP_WIDTH && j <MAP_HEIGHT) {
@@ -449,7 +452,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
          state.addMessage("The area around you clears!", MessageType::SPELL);
          spellCast = true;
          break;
-      case Spell::CLOUD:
+      }
+      case Spell::CLOUD: {
          for (int i = playerPos.x-2; i <= playerPos.x+2; i++) {
             for (int j = playerPos.y-2; j <= playerPos.y+2; j++) {
                int cloudDist = abs(playerPos.x-i)+abs(playerPos.y-j);
@@ -466,11 +470,10 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
          }
          state.addMessage("A thick cloud of smoke appears around you!", MessageType::SPELL);
          spellCast = true;
-
          break;
-      case Spell::MTRAP:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::MTRAP: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             Position target = state.player.pos.directionOffset(direction);
             if (target.withinMap() && state.tileAt(target) == Tile::BLANK) {
                state.addMessage("You create a trap in the ground", MessageType::SPELL);
@@ -481,7 +484,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::MEDITATION:
+      }
+      case Spell::MEDITATION: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -496,11 +500,14 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::CHARITY:
+      }
+      case Spell::CHARITY: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
             } else {
+               bool itemDropped = false;
+
                // Check for each item the hero might have
                for (int i = 0; i < ITEM_COUNT; i++) {
                   const Item curItem = static_cast<Item>(i);
@@ -536,7 +543,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::SLOW:
+      }
+      case Spell::SLOW: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -554,7 +562,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::SHIELD:
+      }
+      case Spell::SHIELD: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -569,7 +578,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::REGENERATE:
+      }
+      case Spell::REGENERATE: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -584,7 +594,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::BLINK:
+      }
+      case Spell::BLINK: {
          if (hero.inSpellRadius()) {
             if (hero.dead) {
                state.addMessage("The hero is dead!", MessageType::SPELL);
@@ -606,9 +617,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             state.addMessage("You are too far from the hero!", MessageType::SPELL);
          }
          break;
-      case Spell::TUNNEL:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::TUNNEL: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
             for (int i = 1; i <= 3; i++) {
@@ -626,7 +637,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::MINEFIELD:
+      }
+      case Spell::MINEFIELD: {
+         bool minePlaced = false;
          for (int i = 0; i < 5; i++) {
             Position temp = state.player.pos.offset(
                Utils::randGen->getInt(-2, 2),
@@ -646,9 +659,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
          }
          spellCast = true;
          break;
-      case Spell::MAIM:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::MAIM: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target) == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
@@ -660,9 +673,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::CRIPPLE:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::CRIPPLE: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             Position target = state.player.pos.directionOffset(direction);
             if (state.tileAt(target)  == Tile::MONSTER) {
                Monster* targetMonster = state.findMonster(target);
@@ -674,9 +687,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::MILLUSION:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::MILLUSION: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             Position target = state.player.pos.directionOffset(direction);
             if (target.withinMap() && state.tileAt(target) == Tile::BLANK ) {
                if (state.illusion.x != -1) {
@@ -690,21 +703,25 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::WEAKEN:
+      }
+      case Spell::WEAKEN: {
          spellCast = castEffectSpellAtMonster(Condition::WEAKENED, true);
          break;
-      case Spell::ALLY:
+      }
+      case Spell::ALLY: {
          spellCast = castEffectSpellAtMonster(Condition::ALLIED, false);
          break;
-      case Spell::HALT:
+      }
+      case Spell::HALT: {
          spellCast = castEffectSpellAtMonster(Condition::HALTED, false);
          break;
-      case Spell::FLEE:
+      }
+      case Spell::FLEE: {
          spellCast = castEffectSpellAtMonster(Condition::FLEEING, false);
          break;
-      case Spell::SCREEN:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::SCREEN: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             bool screenMade = false;
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
@@ -733,9 +750,9 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::MFIELD:
-         direction = Utils::getDirection();
-         if (direction != 0) {
+      }
+      case Spell::MFIELD: {
+         if (int direction = Utils::getDirection(); direction != 0) {
             bool fieldMade = false;
             int diffX = ((direction-1)%3)-1;
             int diffY = 1-((direction-1)/3);
@@ -787,7 +804,8 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             spellCast = true;
          }
          break;
-      case Spell::BLOW:
+      }
+      case Spell::BLOW: {
          spellCast = true;
          state.addMessage("Magical force bursts out from you!", MessageType::SPELL);
          for (int i = -1; i < 2; i++) {
@@ -903,6 +921,7 @@ bool effectSpell(Spell chosenSpell, int level, bool isLastLevel) {
             }
          }
          break;
+      }
       default:
          break;
    }

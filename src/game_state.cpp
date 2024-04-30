@@ -158,21 +158,26 @@ void GameState::addSpecifiedMonster(const Position& pos, int number, bool portal
    addMonster(type, pos, portalSpawned);
 }
 
-void GameState::generateMonsters(int level, int amount) {
-   // Clear all existing monsters
+void GameState::generateMonsters(int level, int monstersPerQuarter) {
    monsterList.clear();
-   Position temp {0, 0};
+
+   constexpr int halfMapWidth = (MAP_WIDTH-1)/2;
+   constexpr int halfMapHeight = (MAP_HEIGHT-1)/2;
+
+   // Loop for each quarter of the map
    for (int a = 0; a < 4; a++) {
-      for (int i = 0; i < amount; i++) {
-         temp = {0, 0};
+      int minX = (a/2 == 0) ? 0 : halfMapWidth;
+      int maxX = (a/2 == 0) ? halfMapWidth : (MAP_WIDTH-1);
+      int minY = (a%2 == 0) ? 0 : halfMapHeight;
+      int maxY = (a%2 == 0) ? halfMapHeight : (MAP_HEIGHT-1);
+      
+      for (int i = 0; i < monstersPerQuarter; i++) {
+         Position temp {0, 0};
          while (tileAt(temp) != Tile::BLANK) {
-            int x = (a/2 == 0)
-               ? Utils::randGen->getInt(0, (MAP_WIDTH-1)/2)
-               : Utils::randGen->getInt((MAP_WIDTH-1)/2, MAP_WIDTH-1);
-            int y = (a%2 == 0)
-               ? Utils::randGen->getInt(0, (MAP_HEIGHT-1)/2)
-               : Utils::randGen->getInt((MAP_HEIGHT-1)/2, MAP_HEIGHT-1);
-            temp = {x, y};
+            temp = {
+               Utils::randGen->getInt(minX, maxX),
+               Utils::randGen->getInt(minY, maxY)
+            };
          }
          int randomMonster = Utils::randGen->getInt(level-1, level+3);
          addSpecifiedMonster(temp, randomMonster, false);
